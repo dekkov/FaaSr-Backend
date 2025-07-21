@@ -4,6 +4,7 @@ import json
 import requests
 import sys
 from multiprocessing import Process
+from pathlib import Path
 
 from FaaSr_py.engine.faasr_payload import FaaSr
 from FaaSr_py.config.debug_config import global_config
@@ -17,16 +18,20 @@ class Executor:
     Handles logic related to running user function
     """
     def __init__(self, faasr: FaaSr):
+        if not isinstance(faasr, FaaSr):
+            err_msg = "{scheduler.py: initializer must be FaaSr instance}"
+            print(err_msg)
+            sys.exit(1)
         self.faasr = faasr
         self.server = None
         self.packages = []
 
-    def call(self, function):
+    def call(self, action):
         """
         Runs a user function
         """
-        func_name = self.faasr["FunctionList"][function]["FunctionName"]
-        func_type = self.faasr["FunctionList"][function]["Type"]
+        func_name = self.faasr["FunctionList"][action]["FunctionName"]
+        func_type = self.faasr["FunctionList"][action]["Type"]
         if "PackageImports" in self.faasr:
             imports = self.faasr["PackageImports"].get(func_name)
         else:
@@ -46,29 +51,31 @@ class Executor:
                     )
                     user_function.start()
                     user_function.join()
-                elif type == "R":
-                    # r_user_func_entry.R must be baked into container
+                elif func_type == "R":
+                    r_entry_dir = Path(__file__).parent.parent / "client"
+                    r_entry_path = r_entry_dir / "r_user_func_entry.R"
                     r_func = subprocess.run(
                         [
                             "RScript",
-                            "r_user_func_entry.R",
+                            str(r_entry_path),
                             func_name,
                             json.dumps(user_args),
                             self.faasr["InvocationID"],
-                        ]
+                        ],
+                        cwd = r_entry_dir
                     )
                     if r_func.returncode != 0:
                         raise SystemExit(
                             f"non-zero exit code from R function: {r_func.returncode}"
                         )
-            except RuntimeError as e:
+            except Exception as e:
                 nat_err_msg = f'{{"faasr_run_user_function": "Error running user function -- {e}"}}'
                 err_msg = f"Errors in the user function: {str(self.faasr["FunctionInvoke"])} check the log for the detail "
                 faasr_log(self.faasr, nat_err_msg)
                 # to-do: remove print
                 print(nat_err_msg)
                 print(err_msg)
-                raise RuntimeError(err_msg)
+                sys.exit(1)
         else:
             print("DEBUG MODE -- SKIPPING USER FUNCTION")
 
@@ -79,8 +86,8 @@ class Executor:
         log_folder_path = f"/tmp/{log_folder}/{self.faasr['FunctionInvoke']}/flag/"
         if not os.path.isdir(log_folder_path):
             os.makedirs(log_folder_path)
-        if "Rank" in self.faasr["FunctionList"][function]:
-            rank_unsplit = self.faasr["FunctionList"][function]["Rank"]
+        if "Rank" in self.faasr["FunctionList"][action]:
+            rank_unsplit = self.faasr["FunctionList"][action]["Rank"]
             if len(rank_unsplit) != 0:
                 rank = rank_unsplit.split("/")[0]
                 self.faasr["FunctionInvoke"] = f"{self.faasr['FunctionInvoke']}.{rank}"
@@ -97,13 +104,13 @@ class Executor:
             remote_file=file_name,
         )
 
-    def run_func(self, function):
+    def run_func(self, action):
         """
         Fetch and run the users function
         """
         # get func type and name
-        func_type = self.faasr["FunctionList"][function]["Type"]
-        func_name = self.faasr["FunctionList"][function]["FunctionName"]
+        func_type = self.faasr["FunctionList"][action]["Type"]
+        func_name = self.faasr["FunctionList"][action]["FunctionName"]
 
         print('install dependencies')
         faasr_func_dependancy_install(self.faasr, func_name, func_type)
@@ -113,7 +120,7 @@ class Executor:
             print("starting server")
             self.host_server_api()
             print('run user function')
-            self.call(function)
+            self.call(action)
             print('get function return value')
             function_result = self.get_function_return()
         except SystemExit as e:

@@ -27,7 +27,7 @@ def faasr_put_file(config, local_file, remote_file, server_name="", local_folder
     if local_folder == "." and str(local_file_path) != local_file_path.name:
         # local_file has directory components
         local_folder = str(local_file_path.parent)
-        local_path = local_file
+        local_path = Path(local_file)
     else:
         # remove trailing '/' and replace instances of multiple '/' in a row with '/'
         local_folder = re.sub(r"/+", "/", local_folder.rstrip("/"))

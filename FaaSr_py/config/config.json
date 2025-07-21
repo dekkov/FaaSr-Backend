@@ -3,12 +3,12 @@
     "SKIP_WF_VALIDATE": true,
     "SKIP_REAL_TRIGGERS": true,
     "SKIP_USER_FUNCTION": false,
-    "USE_LOCAL_USER_FUNC": true,
+    "USE_LOCAL_USER_FUNC": false,
     "LOCAL_FUNCTION_PATH": "/Users/nolancc/documents/github/faasr-py-rpc/faasr_py/testing/local_func.py",
     "LOCAL_FUNCTION_NAME": "default_func",
         "LOCAL_FUNC_ARGS": {
             "test": 10
         },
     "USE_LOCAL_FILE_SYSTEM": true,
-    "LOCAL_FILE_SYSTEM_DIR": "/Users/nolancc/documents/github/faasr-py-rpc/invoke_tester/files"
+    "LOCAL_FILE_SYSTEM_DIR": "/Users/nolancc/desktop/FaaSr-py/invoke_tester"
 }

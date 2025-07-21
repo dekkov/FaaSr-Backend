@@ -1,52 +1,23 @@
 import json
 import importlib
+import uuid
 from pathlib import Path
 
 
-def local_wrap(function):
-    """
-    Wraps stdout of debug function
-    """
-    def formatting(*args, **kwargs):
-        print("---------LOCAL FUNC OUTPUT---------")
-        print(f"ARGS: {args}")
-        print(f"KWARGS: {kwargs}")
-        result = function(*args, **kwargs)
-        print("-----------------------------------")
-        return result
-    return formatting
-
-
-def get_function_from_path(path, func_name):
-    """
-    Returns a function object given it's name and the absolute path to the file it's in
-    """
-    if not path.exists():
-        raise FileNotFoundError("ERROR -- path to local function does not exist")
-
-    # load module
-    module_name = "temp_module"
-    spec = importlib.util.spec_from_file_location(module_name, str(path))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
-    # get function
-    for name, obj in module.__dict__.items():
-        if name == func_name and callable(obj):
-            return obj
-
-    return None
-
 class Config:
+    """
+    Stores FaaSr settings
+    Batch logging
+    """
     _config_file = None
-    _local_func = None
+    _log_buffer = None
     
     def __init__(self, config_path):
         if Config._config_file is None:
             Config._config_file = config_path
 
             # immutable state -- used to restore config
-            # to what it was at the start of the program
+            # to what it was at the start of the function
             self._SKIP_SCHEMA_VALIDATE = self.SKIP_SCHEMA_VALIDATE
             self._SKIP_WF_VALIDATE = self.SKIP_WF_VALIDATE
             self._SKIP_REAL_TRIGGERS = self.SKIP_REAL_TRIGGERS
@@ -57,15 +28,35 @@ class Config:
             self._LOCAL_FUNC_ARGS = self.LOCAL_FUNC_ARGS
             self._USE_LOCAL_FILE_SYSTEM = self.USE_LOCAL_FILE_SYSTEM
             self._LOCAL_FILE_SYSTEM_DIR = self.LOCAL_FILE_SYSTEM_DIR
+
+            # initialize log
+            Config._log_buffer = []
         else:
             raise RuntimeError("cannot initialize Config outside of debug_config.py")
 
+    def __del__(self):
+        """
+        FLUSH SHOULD BE CALLED EXPLICITLY AT END OF EACH PROCESS -- destructor is a backup to flush log buffer
+        """
+        try:
+            if Config._log_buffer:
+                self.flush_log()
+        except Exception as e:
+            err_msg = f'{{debug_config.py: failed to flush log in destructor -- {e}}}'
+            print(err_msg)
+
     def _read_config(self, key):
+        """
+        Read config entry
+        """
         with open(Config._config_file, "r") as f:
             config = json.load(f)
         return config[key]
 
     def _write_config(self, key, value):
+        """
+        Write to config
+        """
         with open(Config._config_file, "r+") as f:
             config = json.load(f)
             config[key] = value
@@ -87,14 +78,24 @@ class Config:
         self.USE_LOCAL_FILE_SYSTEM = self.__dict__["_USE_LOCAL_FILE_SYSTEM"]
         self.LOCAL_FILE_SYSTEM_DIR = self.__dict__["_LOCAL_FILE_SYSTEM_DIR"]
 
-    
-    def source_local_func(self):
-        if self._USE_LOCAL_USER_FUNC and Config._local_func is None:
-            # if local func, source it
-            path = Path(self._LOCAL_FUNCTION_PATH).resolve()
-            user_func = get_function_from_path(path, self._LOCAL_FUNCTION_NAME)
-            Config._local_func = local_wrap(user_func)
+    def log(self, message):
+        """
+        Stores logs to be batch uploaded to S3 at end of function
+        """
+        Config._log_buffer.append(message)
 
+    def flush_log(self):
+        """
+        (to-do) Uploads all messages inside of config to DevLog and clear buffer
+        """
+        print('config log upload not implemented')
+
+    """
+    Getter and setter methods do not update internal member variables.
+    Rather, they read to and write to the config.json file specified
+    by Config._config_file, ensuring that state remains coherent
+    between processes using the config
+    """
     @property
     def SKIP_SCHEMA_VALIDATE(self):
         return self._read_config("SKIP_SCHEMA_VALIDATE")
@@ -194,10 +195,6 @@ class Config:
         if not isinstance(value, str):
             raise TypeError("LOCAL_FILE_SYSTEM_DIR must be a string")
         self._write_config("LOCAL_FILE_SYSTEM_DIR", value)
-
-    @property 
-    def local_func(self):
-        return Config._local_func
 
 
 directory = Path(__file__).parent.absolute()

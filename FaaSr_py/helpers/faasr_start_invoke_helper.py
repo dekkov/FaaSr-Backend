@@ -301,8 +301,9 @@ def faasr_func_dependancy_install(faasr_source, funcname, func_type, new_lib=Non
 
     # install gh packages
     if "FunctionGitHubPackage" in faasr_source:
-        gh_packages = faasr_source["FunctionGitHubPackage"][funcname]
-        faasr_install_git_packages(gh_packages, func_type)
+        if funcname in faasr_source["FunctionGitHubPackage"]:
+            gh_packages = faasr_source["FunctionGitHubPackage"][funcname]
+            faasr_install_git_packages(gh_packages, func_type)
 
 
 

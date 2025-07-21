@@ -1,6 +1,8 @@
+from pathlib import Path
+
 from faasr_server_python import *
 from FaaSr_py.config.debug_config import global_config
-from FaaSr_py.helpers.py_func_helper import faasr_import_function, source_packages
+from FaaSr_py.helpers.py_func_helper import faasr_import_function_walk, faasr_import_function, source_packages, local_wrap
 
 
 def run_py_function(faasr, func_name, args, imports):
@@ -8,11 +10,18 @@ def run_py_function(faasr, func_name, args, imports):
     Sources python function from file and runs it
     """
     if global_config.USE_LOCAL_USER_FUNC:
-        print("DEBUG MODE -- USING DEBUG USER FUNC")
-        global_config.source_local_func()
-        user_function = global_config.local_func
+        print("CONFIG ----- USING LOCAL FUNCTION")
+        try:
+            func_path = Path(global_config.LOCAL_FUNCTION_PATH).resolve()
+            local_func_name_local = global_config.LOCAL_FUNCTION_NAME
+
+            user_function = local_wrap(
+                faasr_import_function(func_path, local_func_name)
+            )
+        except:
+            raise RuntimeError("failed to get local function")
     else:
-        user_function = faasr_import_function(
+        user_function = faasr_import_function_walk(
             func_name, f"/tmp/functions{faasr['InvocationID']}"
         )
 

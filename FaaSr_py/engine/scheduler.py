@@ -12,6 +12,13 @@ from FaaSr_py.s3_api import faasr_log
 
 class Scheduler:
     def __init__(self, faasr: FaaSr):
+        """
+        Handles scheduling of next functions in the DAG
+        """
+        if not isinstance(faasr, FaaSr):
+            err_msg = "{scheduler.py: initializer must be FaaSr instance}"
+            print(err_msg)
+            sys.exit(1)
         self.faasr = faasr
 
     def trigger(self, return_val=None):
@@ -33,7 +40,7 @@ class Scheduler:
 
         # Ensure that function returned a value if conditionals are present
         if contains_dict(invoke_next) and return_val is None:
-            err_msg = '{{"faasr_trigger":"ERROR -- InvokeNext contains conditionals but function did not return a value"}}'
+            err_msg = '{"faasr_trigger":"ERROR -- InvokeNext contains conditionals but function did not return a value"}'
             print(err_msg)
             faasr_log(self.faasr, err_msg)
             sys.exit(1)
@@ -91,7 +98,10 @@ class Scheduler:
                     case "GitHubActions":
                         self.invoke_gh(next_compute_server, function)
             else:
-                print(f"FAKE TRIGGER: {function}.{rank}")
+                msg = f"SIMULATED TRIGGER: {function}"
+                if rank_num > 1:
+                    msg += f".{rank}"
+                print(msg)
 
     def invoke_gh(self, next_compute_server, function):
         """

@@ -95,7 +95,6 @@ class Config:
             user_func = get_function_from_path(path, self._LOCAL_FUNCTION_NAME)
             Config._local_func = local_wrap(user_func)
 
-
     @property
     def SKIP_SCHEMA_VALIDATE(self):
         return self._read_config("SKIP_SCHEMA_VALIDATE")

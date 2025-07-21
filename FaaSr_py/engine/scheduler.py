@@ -138,7 +138,6 @@ class Scheduler:
             faasr_git["DataStores"][data_js]["SecretKey"] = f"{data_js}_SECRET_KEY"
 
         # Create payload input
-        # to-do: dont hardcode
         overwritten_files = self.faasr.get_overwritten_fields()
         json_overwritten = json.dumps(overwritten_files)
         inputs = {
@@ -200,6 +199,7 @@ class Scheduler:
                 print(err_msg)
                 faasr_log(self.faasr, err_msg)
 
+    # to-do
     def invoke_lambda(self, next_compute_server, function):
         """
         Trigger AWS Lambda function
@@ -238,6 +238,7 @@ class Scheduler:
                 print(err_msg)
                 faasr_log(self.faasr, err_msg)
 
+    # to-do
     def invoke_ow(self, next_compute_server, function):
         """
         Trigger OpenWhisk function

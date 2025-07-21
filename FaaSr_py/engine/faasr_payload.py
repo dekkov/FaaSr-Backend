@@ -62,10 +62,10 @@ class FaaSr:
                 if name not in ignore_keys:
                     # If the value is a list or dict, recurse
                     if isinstance(payload[name], list) or isinstance(payload[name], dict):
-                        self[name] = recursive_replace(payload[name], secrets)
+                        payload[name] = recursive_replace(payload[name], secrets)
                     # Replace value
                     elif payload[name] in secrets:
-                        self[name] = secrets[payload[name]]
+                        payload[name] = secrets[payload[name]]
             return payload
         ignore_keys = [
             "FunctionGitRepo",
@@ -75,7 +75,7 @@ class FaaSr:
             "PyPIPackageDownloads",
             "PackageImports",
         ]
-        recursive_replace(self.base_workflow, secrets)
+        self.base_workflow = recursive_replace(self.base_workflow, secrets)
 
     def s3_check(self):
         """

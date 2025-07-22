@@ -23,7 +23,7 @@ class Scheduler:
 
     def trigger(self, return_val=None):
         """
-        This method triggers the next actions in the DAG
+        Triggers the next actions in the DAG
         """
         # Get a list of the next functions to invoke
         curr_func = self.faasr["FunctionInvoke"]

@@ -1,3 +1,4 @@
 *.DS_Store
 *.pyc
 **/__pycache__/
+FaaSr_py/config/config.json

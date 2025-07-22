@@ -14,10 +14,8 @@ def faasr_get_folder_list(config, server_name="", faasr_prefix=""):
     # Ensure the server is a valid data store
     if server_name not in config["DataStores"]:
         err_msg = (
-            '{"faasr_get_folder_list":"Invalid data server name: '
-            + server_name
-            + '"}\n'
-        )
+            f'{{"faasr_get_folder_list":"Invalid data server name: {server_name}"}}\n'
+            )
         print(err_msg)
         sys.exit(1)
 

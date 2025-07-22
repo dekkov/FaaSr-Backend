@@ -34,6 +34,7 @@ faasr_run_user_function <- function(func_name, user_args){
     stop()
     }
   )
+  return(faasr_result)
 }
 
 

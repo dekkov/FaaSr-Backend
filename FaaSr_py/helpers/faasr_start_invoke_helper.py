@@ -158,7 +158,7 @@ def faasr_get_github_raw(token=None, path=None):
     else:
         try:
             err_response = response1.json()
-            message = error_response.get("message")
+            message = err_response.get("message")
         except Exception:
             message = "invalid or no response from GH"
         err_msg = f'{{"faasr_install_git_repo":"ERROR -- {message}"}}\n'

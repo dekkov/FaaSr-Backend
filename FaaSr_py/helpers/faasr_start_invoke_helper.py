@@ -284,25 +284,28 @@ def faasr_install_git_packages(gh_packages, type, lib_path=None):
                 subprocess.run(command, text=True)
 
 
-def faasr_func_dependancy_install(faasr_source, func_name, func_type, new_lib=None):
+def faasr_func_dependancy_install(faasr_source, func_name, func_type):
     # get files from git repo
     gits = faasr_source["FunctionGitRepo"].get(func_name)
     faasr_install_git_repos(faasr_source, func_type, gits)
 
     if "PyPIPackageDownloads" in faasr_source and func_type == "Python":
         pypi_packages = faasr_source["PyPIPackageDownloads"].get(func_name)
-        for package in pypi_packages:
-            faasr_pip_install(package)
+        if pypi_packages:
+            for package in pypi_packages:
+                faasr_pip_install(package)
     elif "FunctionCRANPackage" in faasr_source and func_type == "R":
         cran_packages = faasr_source["FunctionCRANPackage"].get(func_name)
-        for package in cran_packages:
-            faasr_install_cran(package)
+        if cran_packages:
+            for package in cran_packages:
+                faasr_install_cran(package)
 
     # install gh packages
     if "FunctionGitHubPackage" in faasr_source:
         if func_name in faasr_source["FunctionGitHubPackage"]:
             gh_packages = faasr_source["FunctionGitHubPackage"].get(func_name)
-            faasr_install_git_packages(gh_packages, func_type)
+            if gh_packages:
+                faasr_install_git_packages(gh_packages, func_type)
 
 
 

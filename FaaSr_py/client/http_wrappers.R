@@ -11,9 +11,9 @@ faasr_log <- function(log_message) {
     response_content <- content(r)
 
     if (!is.null(response_content$Success) && response_content$Success) {
-        return (response_content$Data$folder_list)
+        return (response_content$Success)
     } else {
-        err_msg <- paste0('{\"faasr_log\": \"Request to FaaSr RPC failed\"}')
+        err_msg <- paste0('{\"faasr_delete_file\": \"Request to FaaSr RPC failed\"}')
         message(err_msg)
         faasr_exit(error=TRUE)
     }
@@ -34,9 +34,9 @@ faasr_put_file <- function(local_file, remote_file, server_name="", local_folder
     response_content <- content(r)
 
     if (!is.null(response_content$Success) && response_content$Success) {
-        return (response_content$Data$folder_list)
+        return (response_content$Success)
     } else {
-        err_msg <- paste0('{\"faasr_put_file\": \"request to FaaSr RPC failed\"}')
+        err_msg <- paste0('{\"faasr_delete_file\": \"Request to FaaSr RPC failed\"}')
         message(err_msg)
         faasr_exit(error=TRUE)
     }
@@ -57,14 +57,13 @@ faasr_get_file <- function(local_file, remote_file, server_name="", local_folder
     response_content <- content(r)
 
     if (!is.null(response_content$Success) && response_content$Success) {
-        return (response_content$Data$folder_list)
+        return (response_content$Success)
     } else {
-        err_msg <- paste0('{\"faasr_get_file\": \"Request to FaaSr RPC failed\"}')
+        err_msg <- paste0('{\"faasr_delete_file\": \"Request to FaaSr RPC failed\"}')
         message(err_msg)
         faasr_exit(error=TRUE)
     }
 }
-
 
 faasr_delete_file <- function(remote_file, server_name="", remote_folder="") {
     request_json <- list(
@@ -78,7 +77,7 @@ faasr_delete_file <- function(remote_file, server_name="", remote_folder="") {
     response_content <- content(r)
 
     if (!is.null(response_content$Success) && response_content$Success) {
-        return (response_content$Data$folder_list)
+        return (response_content$Success)
     } else {
         err_msg <- paste0('{\"faasr_delete_file\": \"Request to FaaSr RPC failed\"}')
         message(err_msg)

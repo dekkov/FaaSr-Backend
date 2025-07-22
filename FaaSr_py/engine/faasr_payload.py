@@ -96,10 +96,10 @@ class FaaSr:
 
             # If the region is empty, then use defualt 'us-east-1'
             if not server_region:
-                self.base_workflow["DataStores"][server]["Region"] = "us-east-1"
+                self["DataStores"][server]["Region"] = "us-east-1"
             if (
                 "Anonynmous" in self["DataStores"][server]
-                and len(self.base_workflow["DataStores"][server]["Anonymous"]) != 0
+                and len(self["DataStores"][server]["Anonymous"]) != 0
             ):
                 # to-do: continue if anonymous is true
                 print("anonymous param not implemented")
@@ -135,8 +135,8 @@ class FaaSr:
         faasr_msg = f'{{"init_log_folder":"InvocationID for the workflow: {self["InvocationID"]}"}}\n'
         print(faasr_msg)
 
-        target_s3 = get_logging_server()
-        s3_log_info = self.payload_dict["DataStores"][target_s3]
+        target_s3 = get_logging_server(self)
+        s3_log_info = self["DataStores"][target_s3]
 
         s3_client = get_default_log_client(self)
 
@@ -166,8 +166,8 @@ class FaaSr:
         and aborts if they have not finished or the current function instance was not
         the first to write to the candidate set
         """
-        target_s3 = get_logging_server()
-        s3_log_info = self.payload_dict["DataStores"][target_s3]
+        target_s3 = get_logging_server(self)
+        s3_log_info = self["DataStores"][target_s3]
 
         # Get boto3 client for default data store (to-do: make general)
         s3_client = get_default_log_client(self)

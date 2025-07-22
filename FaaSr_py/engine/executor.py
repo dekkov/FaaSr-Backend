@@ -142,7 +142,6 @@ class Executor:
             sys.exit(1)
         finally:
             # Clean up server
-            print("terminate server process")
             self.terminate_server()
         return function_result
 

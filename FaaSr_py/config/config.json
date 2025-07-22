@@ -1,7 +1,7 @@
 {
     "SKIP_SCHEMA_VALIDATE": true,
-    "SKIP_WF_VALIDATE": true,
-    "SKIP_REAL_TRIGGERS": true,
+    "SKIP_WF_VALIDATE": false,
+    "SKIP_REAL_TRIGGERS": false,
     "SKIP_USER_FUNCTION": false,
     "USE_LOCAL_USER_FUNC": false,
     "LOCAL_FUNCTION_PATH": "/Users/nolancc/documents/github/faasr-py-rpc/faasr_py/testing/local_func.py",

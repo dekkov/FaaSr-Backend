@@ -138,9 +138,10 @@ def faasr_get_github_raw(token=None, path=None):
     url = f"https://api.github.com/repos/{username}/{reponame}/contents/{filepath}?ref={branch}"
     headers = {
         "Accept": "application/vnd.github.v3+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "FaaSrClient/0.1"
+        "X-GitHub-Api-Version": "2022-11-28"
     }
+
+    print(url)
 
     response1 = requests.get(url, headers=headers)
 
@@ -159,9 +160,9 @@ def faasr_get_github_raw(token=None, path=None):
     else:
         try:
             err_response = response1.json()
-            message = error_json.get("message", "unknown error")
+            message = error_response.get("message")
         except Exception:
-            message = "unknown error (invalid JSON response)"
+            message = "invalid or no response from GH"
         err_msg = f'{{"faasr_install_git_repo":"ERROR -- {message}"}}\n'
         print(err_msg)
         sys.exit(1)

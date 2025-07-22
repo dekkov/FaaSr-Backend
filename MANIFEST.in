@@ -1,0 +1,2 @@
+include FaaSr_py/config/config.json
+recursive-include FaaSr_py *.R

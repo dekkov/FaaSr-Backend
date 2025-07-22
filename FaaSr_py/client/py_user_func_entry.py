@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from faasr_server_python import *
+from FaaSr_py.client.py_client_stub import *
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.helpers.py_func_helper import faasr_import_function_walk, faasr_import_function, source_packages, local_wrap
 
@@ -13,10 +13,10 @@ def run_py_function(faasr, func_name, args, imports):
         print("CONFIG ----- USING LOCAL FUNCTION")
         try:
             func_path = Path(global_config.LOCAL_FUNCTION_PATH).resolve()
-            local_func_name_local = global_config.LOCAL_FUNCTION_NAME
+            func_name_local = global_config.LOCAL_FUNCTION_NAME
 
             user_function = local_wrap(
-                faasr_import_function(func_path, local_func_name)
+                faasr_import_function(func_path, func_name_local)
             )
         except:
             raise RuntimeError("failed to get local function")

@@ -4,7 +4,7 @@
     "SKIP_REAL_TRIGGERS": false,
     "SKIP_USER_FUNCTION": false,
     "USE_LOCAL_USER_FUNC": false,
-    "LOCAL_FUNCTION_PATH": "/Users/nolancc/documents/github/faasr-py-rpc/faasr_py/testing/local_func.py",
+    "LOCAL_FUNCTION_PATH": "/Users/nolancc/documents/github/faasr-py-dev/faasr_py/testing/local_func.py",
     "LOCAL_FUNCTION_NAME": "default_func",
         "LOCAL_FUNC_ARGS": {
             "test": 10

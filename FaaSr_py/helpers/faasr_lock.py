@@ -2,7 +2,7 @@ import random
 import time
 import sys
 
-from FaaSr_py.helpers.s3_helper_functions import get_default_log_client, get_logging_server
+from FaaSr_py.helpers.s3_helper_functions import get_default_log_boto3_client, get_logging_server
 
 
 def faasr_rsm(faasr_payload):
@@ -17,7 +17,7 @@ def faasr_rsm(faasr_payload):
 
     # set s3 client
     target_s3 = get_logging_server(faasr_payload)
-    s3_client = get_default_log_client()
+    s3_client = get_default_log_boto3_client(faasr_payload)
 
     cnt = 0
     max_cnt = 4
@@ -103,7 +103,7 @@ def faasr_release(faasr_payload):
 
     # Get the faasr logging server from payload
     target_s3 = get_logging_server(faasr_payload)
-    s3_client = get_default_log_client(faasr_payload)
+    s3_client = get_default_log_boto3_client(faasr_payload)
 
     # Delete the lock from S3
     s3_client.delete_object(Bucket=target_s3["Bucket"], Key=lock_name)

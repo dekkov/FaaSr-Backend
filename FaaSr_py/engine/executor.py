@@ -26,12 +26,12 @@ class Executor:
         self.server = None
         self.packages = []
 
-    def call(self, action):
+    def call(self, action_name):
         """
         Runs a user function
         """
-        func_name = self.faasr["FunctionList"][action]["FunctionName"]
-        func_type = self.faasr["FunctionList"][action]["Type"]
+        func_name = self.faasr["FunctionList"][action_name]["FunctionName"]
+        func_type = self.faasr["FunctionList"][action_name]["Type"]
         if "PackageImports" in self.faasr:
             imports = self.faasr["PackageImports"].get(func_name)
         else:
@@ -61,7 +61,7 @@ class Executor:
                     r_entry_path = r_entry_dir / "r_user_func_entry.R"
                     r_func = subprocess.run(
                         [
-                            "RScript",
+                            "Rscript",
                             str(r_entry_path),
                             func_name,
                             json.dumps(user_args),
@@ -91,8 +91,8 @@ class Executor:
         log_folder_path = f"/tmp/{log_folder}/{self.faasr['FunctionInvoke']}/flag/"
         if not os.path.isdir(log_folder_path):
             os.makedirs(log_folder_path)
-        if "Rank" in self.faasr["FunctionList"][action]:
-            rank_unsplit = self.faasr["FunctionList"][action]["Rank"]
+        if "Rank" in self.faasr["FunctionList"][action_name]:
+            rank_unsplit = self.faasr["FunctionList"][action_name]["Rank"]
             if len(rank_unsplit) != 0:
                 rank = rank_unsplit.split("/")[0]
                 self.faasr["FunctionInvoke"] = f"{self.faasr['FunctionInvoke']}.{rank}"
@@ -109,23 +109,20 @@ class Executor:
             remote_file=file_name,
         )
 
-    def run_func(self, action):
+    def run_func(self, action_name):
         """
         Fetch and run the users function
         """
-        # get func type and name
-        func_type = self.faasr["FunctionList"][action]["Type"]
-        func_name = self.faasr["FunctionList"][action]["FunctionName"]
-
-        print('install dependencies')
-        faasr_func_dependancy_install(self.faasr, func_name, func_type)
+        # install dependencies for function
+        action = self.faasr["FunctionList"][action_name]
+        faasr_func_dependancy_install(self.faasr, action)
 
         # Run function
         try:
             print("starting server")
             self.host_server_api()
             print('run user function')
-            self.call(action)
+            self.call(action_name)
             print('get function return value')
             function_result = self.get_function_return()
         except SystemExit as e:

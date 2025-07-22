@@ -9,11 +9,9 @@ def validate_uuid(uuid_value):
 
     return: boolean
     """
-    # UUID is invalid if it's not a string
     if not isinstance(uuid_value, str):
         return False
 
-    # If uuid.UUID raises an exception, then the uuid is invalid
     try:
         uuid.UUID(uuid_value)
     except ValueError:
@@ -32,7 +30,7 @@ def get_logging_server(faasr):
     return logging_server
 
 
-def get_default_log_client(faasr):
+def get_default_log_boto3_client(faasr):
     """
     Returns a boto3 client associated with default logging datastore
     """

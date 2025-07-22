@@ -45,7 +45,7 @@ def faasr_get_github_clone(url, base_dir="/tmp"):
         sys.exit(1)
 
 
-def faasr_get_github(faasr_source, path):
+def faasr_get_github(faasr_source, path, token=None):
     """
     Downloads a repo specified by a github path [username/repo] to a tarball file
     """
@@ -69,13 +69,16 @@ def faasr_get_github(faasr_source, path):
     url = f"https://api.github.com/repos/{repo}/tarball"
     tar_name = f"/tmp/{reponame}.tar.gz"
 
+    headers = {
+        "Accept": "application/vnd.github.v3+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Authorization": f"Bearer {token}" if token else None
+    }
+
     # send get request
     response1 = requests.get(
         url,
-        headers={
-            "Accept": "application/vnd.github.v3+json",
-            "X-GitHub-Api-Version": "2022-11-28"
-        },
+        headers=headers,
         stream=True,
     )
 
@@ -101,28 +104,23 @@ def faasr_get_github(faasr_source, path):
 
         msg = '{"faasr_install_git_repo":"Successful"}\n'
         print(msg)
-    elif response1.status_code == 401:
-        err_msg = '{"faasr_install_git_repo":"Bad credentials - check github token"}\n'
-        print(err_msg)
-        sys.exit(1)
     else:
-        err_msg = f'{{"faasr_install_git_repo": "Not found - check github repo: {repo}"}}\n'
+        try:
+            err_response = response1.json()
+            message = err_response.get("message")
+        except Exception:
+            message = "invalid or no response from GH"
+        err_msg = f'{{"faasr_install_git_repo":"ERROR -- {message}"}}\n'
         print(err_msg)
         sys.exit(1)
 
 
-def faasr_get_github_raw(token=None, path=None):
+def faasr_get_github_raw(token, path):
     """
     Gets the contents of a single file on GitHub
 
     @return GitHub file (str)
     """
-
-    if path is None:
-        github_repo = os.getenv("PAYLOAD_REPO")
-    else:
-        github_repo = path
-
     parts = path.split("/")
     if len(parts) < 3:
         err_msg = '{"faasr_get_github_raw":"github path should contain at least three parts"}\n'
@@ -138,7 +136,8 @@ def faasr_get_github_raw(token=None, path=None):
     url = f"https://api.github.com/repos/{username}/{reponame}/contents/{filepath}?ref={branch}"
     headers = {
         "Accept": "application/vnd.github.v3+json",
-        "X-GitHub-Api-Version": "2022-11-28"
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Authorization": f"Bearer {token}" if token else None
     }
 
     response1 = requests.get(url, headers=headers)
@@ -151,10 +150,6 @@ def faasr_get_github_raw(token=None, path=None):
         decoded_bytes = base64.b64decode(content)
         decoded_string = decoded_bytes.decode("utf-8")
         return decoded_string
-    elif response1.status_code == 401:
-        err_msg = '{"faasr_install_git_repo":"Bad credentials - check github token"}\n'
-        print(err_msg)
-        sys.exit(1)
     else:
         try:
             err_response = response1.json()
@@ -166,7 +161,7 @@ def faasr_get_github_raw(token=None, path=None):
         sys.exit(1)
 
 
-def faasr_install_git_repos(faasr_source, func_type, gits):
+def faasr_install_git_repos(faasr_source, func_type, gits, token):
     """
     Downloads content from git repo(s)
     """
@@ -192,7 +187,7 @@ def faasr_install_git_repos(faasr_source, func_type, gits):
                     or (file_name.endswith(".R") and func_type == "R")):
                     msg = f'{{"faasr_install_git_repo":"get file: {file_name}"}}\n'
                     print(msg)
-                    content = faasr_get_github_raw(path=path)
+                    content = faasr_get_github_raw(token, path)
                     # write fetched file to disk
                     with open(file_name, "w") as f:
                         f.write(content)
@@ -200,7 +195,7 @@ def faasr_install_git_repos(faasr_source, func_type, gits):
                     # if the path is a non-python file, download the repo
                     msg = f'{{"faasr_install_git_repo":"get git repo files: {path}"}}\n'
                     print(msg)
-                    faasr_get_github(faasr_source, path)
+                    faasr_get_github(faasr_source, path, token)
 
 
 def faasr_pip_install(package):
@@ -283,10 +278,22 @@ def faasr_install_git_packages(gh_packages, type, lib_path=None):
                 subprocess.run(command, text=True)
 
 
-def faasr_func_dependancy_install(faasr_source, func_name, func_type):
+def faasr_func_dependancy_install(faasr_source, action):
+    func_type, func_name = action["Type"], action["FunctionName"]
+
     # get files from git repo
     gits = faasr_source["FunctionGitRepo"].get(func_name)
-    faasr_install_git_repos(faasr_source, func_type, gits)
+
+    # get token if present
+    token = os.getenv("TOKEN")
+    print(f"token: {token}")
+        
+    if not token:
+        msg = '{"faasr_install_git_repo":"Warning: No GH token used. May hit rate limits when installing functions"}\n'
+        print(msg)
+
+    # get gh functions
+    faasr_install_git_repos(faasr_source, func_type, gits, token)
 
     if "PyPIPackageDownloads" in faasr_source and func_type == "Python":
         pypi_packages = faasr_source["PyPIPackageDownloads"].get(func_name)

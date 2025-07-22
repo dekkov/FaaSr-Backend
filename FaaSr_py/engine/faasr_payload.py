@@ -9,13 +9,14 @@ from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_get_github_raw
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.helpers.faasr_lock import faasr_acquire, faasr_release
 from FaaSr_py.helpers.graph_functions import check_dag, validate_json
-from FaaSr_py.helpers.s3_helper_functions import validate_uuid, get_default_log_client, get_logging_server
+from FaaSr_py.helpers.s3_helper_functions import validate_uuid, get_default_log_boto3_client, get_logging_server
 
 
 class FaaSr:
-    def __init__(self, url: str, overwritten = {}):
-        # fetch workflow file from gh
-        raw_payload = faasr_get_github_raw(path=url)
+    def __init__(self, url: str, overwritten = {}, token=None):
+        if token is None:
+            token = os.getenv("TOKEN")
+        raw_payload = faasr_get_github_raw(token, path=url)
         base_workflow = json.loads(raw_payload)
 
         if global_config.SKIP_SCHEMA_VALIDATE:
@@ -41,6 +42,9 @@ class FaaSr:
     def __contains__(self, item):
         return item in self.base_workflow or item in self.overwritten
 
+    def __it__(self):
+        return iter(self.get_complete_workflow().items())
+
     def get_complete_workflow(self):
         temp_dict = self.base_workflow.copy()
         for key, val in self.overwritten.items():
@@ -57,16 +61,16 @@ class FaaSr:
         """
         Replaces filler secrets in a payload with real credentials (writes result to overwritten data)
         """
-        def recursive_replace(payload, secrets):
+        def recursive_replace(payload):
             for name in payload:
                 if name not in ignore_keys:
                     # If the value is a list or dict, recurse
                     if isinstance(payload[name], list) or isinstance(payload[name], dict):
-                        payload[name] = recursive_replace(payload[name], secrets)
-                    # Replace value
+                        recursive_replace(payload[name])
+                    # Replace value in overwritten
                     elif payload[name] in secrets:
                         payload[name] = secrets[payload[name]]
-            return payload
+
         ignore_keys = [
             "FunctionGitRepo",
             "FunctionList",
@@ -75,7 +79,8 @@ class FaaSr:
             "PyPIPackageDownloads",
             "PackageImports",
         ]
-        self.base_workflow = recursive_replace(self.base_workflow, secrets)
+
+        recursive_replace(self.base_workflow)
 
     def s3_check(self):
         """
@@ -131,16 +136,13 @@ class FaaSr:
                 ID = uuid.uuid4()
                 self["InvocationID"] = str(ID)
 
-        # Log invocation ID
         faasr_msg = f'{{"init_log_folder":"InvocationID for the workflow: {self["InvocationID"]}"}}\n'
         print(faasr_msg)
 
         target_s3 = get_logging_server(self)
         s3_log_info = self["DataStores"][target_s3]
+        s3_client = get_default_log_boto3_client(self)
 
-        s3_client = get_default_log_client(self)
-
-        # If no name for log specified, use 'FaaSrLog'
         if self["FaaSrLog"] is None or self["FaaSrLog"] == "":
             self["FaaSrLog"] = "FaaSrLog"
 

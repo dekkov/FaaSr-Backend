@@ -15,6 +15,7 @@ def faasr_log(config, log_message):
     log_folder = Path(config['FaaSrLog']) / config['InvocationID']
     log_path = Path(Path(log_folder)) / f"{config['FunctionInvoke']}.txt"
 
+
     if global_config.USE_LOCAL_FILE_SYSTEM:
         # make log dir
         local_log_path = Path(global_config.LOCAL_FILE_SYSTEM_DIR / log_path)
@@ -50,15 +51,16 @@ def faasr_log(config, log_message):
             Bucket=log_server["Bucket"], Prefix=str(log_path)
         )
 
+        log_download_path = Path("/tmp/", log_path)
+        Path(log_path).parent.mkdir(parents=True, exist_ok=True)
+
         # Download the log if it exists
         if "Contents" in check_log_file and len(check_log_file["Contents"]) != 0:
-            if os.path.exists(log_path):
-                os.remove(log_path)
+            if os.path.exists(log_download_path):
+                os.remove(log_download_path)
             s3_client.download_file(
-                Bucket=log_server["Bucket"], Key=str(log_path), Filename=str(log_path)
+                Bucket=log_server["Bucket"], Key=str(log_path), Filename=str(log_download_path)
             )
-        
-        log_download_path = Path("/tmp/", log_path)
 
         # Write to log
         logs = f"{log_message}\n"
@@ -67,4 +69,4 @@ def faasr_log(config, log_message):
 
         # Upload log back to S3
         with open(log_download_path, "rb") as log_data:
-            s3_client.put_object(Bucket=log_server["Bucket"], Body=log_data, Key=str(log_download_path))
+            s3_client.put_object(Bucket=log_server["Bucket"], Body=log_data, Key=str(log_path))

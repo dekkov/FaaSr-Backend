@@ -10,19 +10,15 @@ def faasr_get_file(
     """
     This function downloads a file from S3
     """
-    # Get server name if one is not provided
-    if server_name == "":
+    if not server_name:
         server_name = config["DefaultDataStore"]
 
-    # Ensure that the server is a data store in the payload
     if server_name not in config["DataStores"]:
         err_msg = '{"faasr_get_file":"Invalid data server name: ' + server_name + '"}\n'
         print(err_msg)
         sys.exit(1)
 
-    # Get the S3 data store to download the file from
     target_s3 = config["DataStores"][server_name]
-
     local_folder = f"/tmp/{local_folder}"
 
     # Removes duplicate/trailing slashes from folder and local file names

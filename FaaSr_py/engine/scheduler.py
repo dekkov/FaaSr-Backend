@@ -48,8 +48,6 @@ class Scheduler:
         for next_trigger in invoke_next:
             if isinstance(next_trigger, dict):
                 conditional_invoke_next = next_trigger.get(str(return_val))
-                print(next_trigger)
-                print(conditional_invoke_next)
                 if isinstance(conditional_invoke_next, str):
                     self.trigger_func(conditional_invoke_next)
                 else:
@@ -107,7 +105,6 @@ class Scheduler:
         """
         Trigger GH function
         """
-        print(next_compute_server, function)
         # Get env values for GH actions
         pat = next_compute_server["Token"]
         username = next_compute_server["UserName"]

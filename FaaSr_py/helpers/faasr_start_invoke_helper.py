@@ -45,7 +45,7 @@ def faasr_get_github_clone(url, base_dir="/tmp"):
         sys.exit(1)
 
 
-def faasr_get_github(faasr_source, path, token):
+def faasr_get_github(faasr_source, path):
     """
     Downloads a repo specified by a github path [username/repo] to a tarball file
     """
@@ -74,8 +74,7 @@ def faasr_get_github(faasr_source, path, token):
         url,
         headers={
             "Accept": "application/vnd.github.v3+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-            "Authorization": f"Bearer {token}"
+            "X-GitHub-Api-Version": "2022-11-28"
         },
         stream=True,
     )
@@ -183,8 +182,6 @@ def faasr_install_git_repos(faasr_source, func_type, gits):
             if (
                 path.endswith("git")
                 or path.startswith("https://")
-                or path.startswith("git@")
-                or path.startswith("git+")
             ):
                 msg = f'{{"faasr_install_git_repo":"clone github: {path}"}}\n'
                 print(msg)
@@ -204,7 +201,7 @@ def faasr_install_git_repos(faasr_source, func_type, gits):
                     # if the path is a non-python file, download the repo
                     msg = f'{{"faasr_install_git_repo":"get git repo files: {path}"}}\n'
                     print(msg)
-                    faasr_get_github(faasr_source, path, token)
+                    faasr_get_github(faasr_source, path)
 
 
 def faasr_pip_install(package):

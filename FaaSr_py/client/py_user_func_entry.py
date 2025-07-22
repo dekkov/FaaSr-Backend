@@ -38,9 +38,8 @@ def run_py_function(faasr, func_name, args, imports):
     user_function.__globals__["faasr_get_folder_list"] = faasr_get_folder_list
     user_function.__globals__["faasr_log"] = faasr_log
 
-    print(f"using local function {global_config.USE_LOCAL_USER_FUNC}")
-
     if global_config.USE_LOCAL_USER_FUNC:
+        print(f"using local function {global_config.LOCAL_FUNCTION_NAME}")
         result = user_function(**global_config.LOCAL_FUNC_ARGS)
     else:
         func_namespace = user_function.__globals__

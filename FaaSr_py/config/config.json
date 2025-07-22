@@ -9,6 +9,6 @@
         "LOCAL_FUNC_ARGS": {
             "test": 10
         },
-    "USE_LOCAL_FILE_SYSTEM": true,
+    "USE_LOCAL_FILE_SYSTEM": false,
     "LOCAL_FILE_SYSTEM_DIR": "/Users/nolancc/desktop/FaaSr-py/invoke_tester"
 }

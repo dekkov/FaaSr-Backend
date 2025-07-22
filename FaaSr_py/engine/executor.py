@@ -45,12 +45,17 @@ class Executor:
                     from FaaSr_py.client.py_user_func_entry import run_py_function
 
                     # run user func as seperate process
-                    user_function = Process(
+                    py_func = Process(
                         target=run_py_function,
                         args=(self.faasr, func_name, user_args, imports),
                     )
-                    user_function.start()
-                    user_function.join()
+                    py_func.start()
+                    py_func.join()
+
+                    if py_func.exitcode != 0:
+                        raise SystemExit(
+                            f"non-zero exit code ({py_func.exitcode}) from Python function"
+                        )
                 elif func_type == "R":
                     r_entry_dir = Path(__file__).parent.parent / "client"
                     r_entry_path = r_entry_dir / "r_user_func_entry.R"
@@ -66,7 +71,7 @@ class Executor:
                     )
                     if r_func.returncode != 0:
                         raise SystemExit(
-                            f"non-zero exit code from R function: {r_func.returncode}"
+                            f"non-zero exit code ({r_func.returncode}) from R function"
                         )
             except Exception as e:
                 nat_err_msg = f'{{"faasr_run_user_function": "Error running user function -- {e}"}}'
@@ -124,7 +129,7 @@ class Executor:
             print('get function return value')
             function_result = self.get_function_return()
         except SystemExit as e:
-            exit_msg = f'{{"faasr_start_invoke_github_actions.py": "ERROR -- non-zero exit code from user function"}}'
+            exit_msg = f'{{"faasr_start_invoke_github_actions.py": "ERROR -- {e}"}}'
             print(exit_msg)
             sys.exit(1)
         except RuntimeError as e:
@@ -147,9 +152,7 @@ class Executor:
         """
         self.server = Process(target=run_server, args=(self.faasr, port))
         self.server.start()
-        print("waiting")
         wait_for_server_start(port)
-        print("done waiting")
 
     def terminate_server(self):
         """

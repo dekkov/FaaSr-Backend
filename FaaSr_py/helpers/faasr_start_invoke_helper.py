@@ -141,8 +141,6 @@ def faasr_get_github_raw(token=None, path=None):
         "X-GitHub-Api-Version": "2022-11-28"
     }
 
-    print(url)
-
     response1 = requests.get(url, headers=headers)
 
     if response1.status_code == 200:

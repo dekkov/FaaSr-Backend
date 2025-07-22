@@ -21,7 +21,6 @@ faasr_log <- function(log_message) {
 
 
 faasr_put_file <- function(local_file, remote_file, server_name="", local_folder=".", remote_folder=".") {
-    print("put file wrapper!")
     request_json <- list(
         "ProcedureID" = "faasr_put_file",
         "Arguments" = list("local_file" = local_file, 

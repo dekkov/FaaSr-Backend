@@ -22,9 +22,7 @@ def validate_json(payload):
         validate(instance=payload, schema=schema)
     except ValidationError as e:
         err_msg = (
-            '{"faasr_validate_json":"JSON not compliant with FaaSr schema : '
-            + e.message,
-            '"}\n',
+            f'{{"faasr_validate_json":"JSON not compliant with FaaSr schema : {e.message}"}}\n',
         )
         print(err_msg)
     return True
@@ -53,21 +51,13 @@ def is_cyclic(adj_graph, curr, visited, stack):
     for child in adj_graph[curr]:
         if child not in visited and is_cyclic(adj_graph, child, visited, stack):
             err = (
-                '{"faasr_check_workflow_cycle":"Function loop found from node '
-                + curr
-                + " to "
-                + child
-                + '"}\n'
+                f'{{"faasr_check_workflow_cycle":"Function loop found from node {curr} to {child}"}}\n'
             )
             print(err)
             sys.exit(1)
         elif child in stack:
             err = (
-                '{"faasr_check_workflow_cycle":"Function loop found from node '
-                + curr
-                + " to "
-                + child
-                + '"}\n'
+                f'{{"faasr_check_workflow_cycle":"Function loop found from node {curr} to {child}"}}\n'
             )
             print(err)
             sys.exit(1)

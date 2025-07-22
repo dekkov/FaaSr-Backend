@@ -96,13 +96,10 @@ def register_request_handler(faasr_instance):
     @faasr_api.post("/faasr-return")
     def faasr_return_handler(return_obj: Return):
         nonlocal return_val
-        print("Processing return")
         return_val = return_obj.FunctionResult
-        print(f"Return val: {return_val}")
 
     @faasr_api.post("/faasr-exit")
     def faasr_get_exit_handler(exit_obj: Exit):
-        print("Exiting user function")
         nonlocal error, message
         print(exit_obj)
         if exit_obj.Error:
@@ -111,7 +108,6 @@ def register_request_handler(faasr_instance):
 
     @faasr_api.get("/faasr-get-return")
     def faasr_get_return_handler():
-        print(f"Return val: {return_val} error: {error} -- get")
         return Result(FunctionResult=return_val, Error=error, Message=message)
 
 

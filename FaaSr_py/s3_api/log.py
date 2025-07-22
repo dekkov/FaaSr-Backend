@@ -52,7 +52,7 @@ def faasr_log(config, log_message):
         )
 
         log_download_path = Path("/tmp/", log_path)
-        Path(log_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(log_download_path).parent.mkdir(parents=True, exist_ok=True)
 
         # Download the log if it exists
         if "Contents" in check_log_file and len(check_log_file["Contents"]) != 0:

@@ -45,7 +45,7 @@ def faasr_get_github_clone(url, base_dir="/tmp"):
         sys.exit(1)
 
 
-def faasr_get_github(faasr_source, path):
+def faasr_get_github(faasr_source, path, token):
     """
     Downloads a repo specified by a github path [username/repo] to a tarball file
     """
@@ -75,6 +75,7 @@ def faasr_get_github(faasr_source, path):
         headers={
             "Accept": "application/vnd.github.v3+json",
             "X-GitHub-Api-Version": "2022-11-28",
+            "Authorization": f"Bearer {token}"
         },
         stream=True,
     )
@@ -106,7 +107,7 @@ def faasr_get_github(faasr_source, path):
         print(err_msg)
         sys.exit(1)
     else:
-        err_msg = f'{{"faasr_install_git_repo": "Not found - check github repo: {username}/{repo}"}}\n'
+        err_msg = f'{{"faasr_install_git_repo": "Not found - check github repo: {repo}"}}\n'
         print(err_msg)
         sys.exit(1)
 
@@ -139,14 +140,10 @@ def faasr_get_github_raw(token=None, path=None):
     headers = {
         "Accept": "application/vnd.github.v3+json",
         "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "FaaSrClient/0.1"
     }
 
-    # send get requests
-    if path is None:
-        response1 = requests.get(url, headers=headers)
-    else:
-        headers["Authorization"] = f"token{path}"
-        response1 = requests.get(url, headers=headers)
+    response1 = requests.get(url, headers=headers)
 
     if response1.status_code == 200:
         msg = '{"faasr_install_git_repo":"Successful"}\n'
@@ -161,12 +158,17 @@ def faasr_get_github_raw(token=None, path=None):
         print(err_msg)
         sys.exit(1)
     else:
-        err_msg = f'{{"faasr_install_git_repo":"Not found - check github repo: {repo}/{path}"}}\n'
+        try:
+            err_response = response1.json()
+            message = error_json.get("message", "unknown error")
+        except Exception:
+            message = "unknown error (invalid JSON response)"
+        err_msg = f'{{"faasr_install_git_repo":"ERROR -- {message}"}}\n'
         print(err_msg)
         sys.exit(1)
 
 
-def faasr_install_git_repos(faasr_source, type, gits):
+def faasr_install_git_repos(faasr_source, func_type, gits):
     """
     Downloads content from git repo(s)
     """
@@ -184,15 +186,15 @@ def faasr_install_git_repos(faasr_source, type, gits):
                 or path.startswith("git@")
                 or path.startswith("git+")
             ):
-                msg = f'{{"faasr_install_git_repo":"get git repo files: {path}"}}\n'
+                msg = f'{{"faasr_install_git_repo":"clone github: {path}"}}\n'
                 print(msg)
                 faasr_get_github_clone(path)
             else:
                 # if path is a python file, download
                 file_name = os.path.basename(path)
-                if ((file_name.endswith(".py") and type == "Python")
-                    or (file_name.endswith(".R") and type == "R")):
-                    msg = f'{{"faasr_install_git_repo":"get git repo files: {path}"}}\n'
+                if ((file_name.endswith(".py") and func_type == "Python")
+                    or (file_name.endswith(".R") and func_type == "R")):
+                    msg = f'{{"faasr_install_git_repo":"get file: {file_name}"}}\n'
                     print(msg)
                     content = faasr_get_github_raw(path=path)
                     # write fetched file to disk
@@ -202,7 +204,7 @@ def faasr_install_git_repos(faasr_source, type, gits):
                     # if the path is a non-python file, download the repo
                     msg = f'{{"faasr_install_git_repo":"get git repo files: {path}"}}\n'
                     print(msg)
-                    faasr_get_github(faasr_source, path)
+                    faasr_get_github(faasr_source, path, token)
 
 
 def faasr_pip_install(package):
@@ -285,24 +287,24 @@ def faasr_install_git_packages(gh_packages, type, lib_path=None):
                 subprocess.run(command, text=True)
 
 
-def faasr_func_dependancy_install(faasr_source, funcname, func_type, new_lib=None):
+def faasr_func_dependancy_install(faasr_source, func_name, func_type, new_lib=None):
     # get files from git repo
-    gits = faasr_source["FunctionGitRepo"].get(funcname)
+    gits = faasr_source["FunctionGitRepo"].get(func_name)
     faasr_install_git_repos(faasr_source, func_type, gits)
 
     if "PyPIPackageDownloads" in faasr_source and func_type == "Python":
-        pypi_packages = faasr_source["PyPIPackageDownloads"][funcname]
+        pypi_packages = faasr_source["PyPIPackageDownloads"].get(func_name)
         for package in pypi_packages:
             faasr_pip_install(package)
     elif "FunctionCRANPackage" in faasr_source and func_type == "R":
-        cran_packages = faasr_source["FunctionCRANPackage"][funcname]
+        cran_packages = faasr_source["FunctionCRANPackage"].get(func_name)
         for package in cran_packages:
             faasr_install_cran(package)
 
     # install gh packages
     if "FunctionGitHubPackage" in faasr_source:
-        if funcname in faasr_source["FunctionGitHubPackage"]:
-            gh_packages = faasr_source["FunctionGitHubPackage"][funcname]
+        if func_name in faasr_source["FunctionGitHubPackage"]:
+            gh_packages = faasr_source["FunctionGitHubPackage"].get(func_name)
             faasr_install_git_packages(gh_packages, func_type)
 
 

@@ -1,6 +1,3 @@
-# shouldnt need to do this -- to-do: remove
-install.packages(c("jsonlite", "httr"), repos = "https://cloud.r-project.org")
-
 library("jsonlite")
 library("httr")
 source("http_wrappers.R")

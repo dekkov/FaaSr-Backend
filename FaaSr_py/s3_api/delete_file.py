@@ -6,6 +6,12 @@ import sys
 def faasr_delete_file(config, remote_file, server_name="", remote_folder=""):
     """
     This function deletes a file from S3
+
+    Arguments:
+        config: FaaSr payload dict
+        remote_file: str -- name of file to delete
+        server_name: str -- name of S3 data store to delete file from
+        remote_folder: str -- folder in S3 to delete file from
     """
     # Get server name from payload if one isn't provided
     if server_name == "":

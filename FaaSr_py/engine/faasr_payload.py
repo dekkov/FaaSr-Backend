@@ -13,9 +13,19 @@ from FaaSr_py.helpers.s3_helper_functions import validate_uuid, get_default_log_
 
 
 class FaaSr:
+    """
+    This class stores the workflow as a dictionary and provides methods to access and manipulate it.
+    It is initialized with a URL and an optional dictionary of overwritten values.
+    The URL points to a GitHub raw file containing the workflow JSON.
+    The class also provides methods to validate the workflow, replace secrets, and check S3 data stores.
+    It can also initialize a log folder and handle multiple invocations of functions.
+    """
     def __init__(self, url: str, overwritten = {}, token=None):
+        # without PAT, larger workflows run the risk
+        # of hitting rate limits hen fetching payload
         if token is None:
             token = os.getenv("TOKEN")
+
         raw_payload = faasr_get_github_raw(token, path=url)
         base_workflow = json.loads(raw_payload)
 
@@ -167,6 +177,8 @@ class FaaSr:
         Invoked when the current function has multiple predecessors
         and aborts if they have not finished or the current function instance was not
         the first to write to the candidate set
+
+        TO-DO: SPLIT -- THIS FUNCTION IS WAY TOO LONG
         """
         target_s3 = get_logging_server(self)
         s3_log_info = self["DataStores"][target_s3]

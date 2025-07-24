@@ -47,7 +47,7 @@ class Config:
 
     def _read_config(self, key):
         """
-        Read config entry
+        Read config entry from config file
         """
         with open(Config._config_file, "r") as f:
             config = json.load(f)
@@ -55,7 +55,7 @@ class Config:
 
     def _write_config(self, key, value):
         """
-        Write to config
+        Write to config file
         """
         with open(Config._config_file, "r+") as f:
             config = json.load(f)

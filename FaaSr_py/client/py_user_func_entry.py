@@ -15,9 +15,7 @@ def run_py_function(faasr, func_name, args, imports):
             func_path = Path(global_config.LOCAL_FUNCTION_PATH).resolve()
             func_name_local = global_config.LOCAL_FUNCTION_NAME
 
-            user_function = local_wrap(
-                faasr_import_function(func_path, func_name_local)
-            )
+            user_function = faasr_import_function(func_path, func_name_local)
         except:
             raise RuntimeError("failed to get local function")
     else:
@@ -38,9 +36,11 @@ def run_py_function(faasr, func_name, args, imports):
     user_function.__globals__["faasr_get_folder_list"] = faasr_get_folder_list
     user_function.__globals__["faasr_log"] = faasr_log
 
+    print(faasr_get_file)
+
     if global_config.USE_LOCAL_USER_FUNC:
         print(f"using local function {global_config.LOCAL_FUNCTION_NAME}")
-        result = user_function(**global_config.LOCAL_FUNC_ARGS)
+        result = local_wrap(user_function)(**global_config.LOCAL_FUNC_ARGS)
     else:
         func_namespace = user_function.__globals__
         source_packages(func_namespace, imports)

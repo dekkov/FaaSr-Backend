@@ -28,7 +28,10 @@ class Executor:
 
     def call(self, action_name):
         """
-        Runs a user function
+        Runs a user function given action name
+
+        Arguments:
+            action_name: str -- name of the action to run
         """
         func_name = self.faasr["FunctionList"][action_name]["FunctionName"]
         func_type = self.faasr["FunctionList"][action_name]["Type"]
@@ -112,6 +115,9 @@ class Executor:
     def run_func(self, action_name):
         """
         Fetch and run the users function
+
+        Arguments:
+            action_name: str -- name of the action to run
         """
         # install dependencies for function
         action = self.faasr["FunctionList"][action_name]
@@ -145,6 +151,9 @@ class Executor:
     def host_server_api(self, port=8000):
         """
         Starts RPC server for serverside API
+
+        Arguments:
+            port: int -- port to run the server on
         """
         self.server = Process(target=run_server, args=(self.faasr, port))
         self.server.start()
@@ -163,21 +172,28 @@ class Executor:
 
     def get_user_function_args(self):
         """
-        Returns function arguments
+        Returns user function arguments
+
+        Returns:
+            dict -- user function arguments
         """
         user_action = self.faasr["FunctionInvoke"]
 
         args = self.faasr["FunctionList"][user_action]["Arguments"]
         if args is None:
-            return []
+            return {}
         else:
             return args
 
     def get_function_return(self, port=8000):
         """
-        Get function result
+        Get user function result
 
-        @return result (bool | None)
+        Arguments:
+            port: int -- port to get the function result from
+        
+        Returns:
+            result: bool | None
         """
         try:
             return_response = requests.get(f"http://127.0.0.1:{port}/faasr-get-return")

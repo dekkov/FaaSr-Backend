@@ -3,11 +3,10 @@ import sys
 import boto3
 
 
-# check if uuid is valid -- return boolean
-def validate_uuid(uuid_value):
-    """validates uuid
 
-    return: boolean
+def validate_uuid(uuid_value):
+    """
+    Checks to see if a string is a valid UUID
     """
     if not isinstance(uuid_value, str):
         return False
@@ -21,7 +20,9 @@ def validate_uuid(uuid_value):
 
 def get_logging_server(faasr):
     """
-    Returns the default logging datastore for the payload
+    Returns the default logging datastore for the payload as a string
+
+    If LoggingDataStore is None, then returns DefaultDataStore
     """
     if faasr["LoggingDataStore"] is None:
         logging_server = faasr["DefaultDataStore"]
@@ -33,6 +34,11 @@ def get_logging_server(faasr):
 def get_default_log_boto3_client(faasr):
     """
     Returns a boto3 client associated with default logging datastore
+
+    Arguments:
+        faasr: FaaSr payload dict
+    Returns:
+        boto3.client: boto3 client for S3 datastore
     """
     # Get the target S3 server
     target_s3 = get_logging_server(faasr)

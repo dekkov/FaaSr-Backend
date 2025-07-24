@@ -7,7 +7,13 @@ from FaaSr_py.helpers.s3_helper_functions import get_default_log_boto3_client, g
 
 def faasr_rsm(faasr_payload):
     """
-    Read and set memomry implemntation for creating a faasr lock in s3
+    RSM for lock
+
+    Arguments:
+        faasr_payload: payload dict (FaaSr)
+    
+    Returns:
+        bool: True if lock acquired (lock file placed in s3), false otherwise
     """
     # set env for flag and lock
     flag_content = random.randint(1, 2**31 - 1)
@@ -64,7 +70,12 @@ def faasr_rsm(faasr_payload):
 
 def faasr_acquire(faasr):
     """
-    This function acquires the lock and leaves a lock object in s3
+    Acquire S3 lock
+
+    Arguments:
+        faasr: FaaSr payload dict
+    Returns:
+        bool: True if lock acquired, False otherwise
     """
     # Call faasr_rsm to get a lock
     lock = faasr_rsm(faasr)
@@ -95,9 +106,11 @@ def faasr_acquire(faasr):
 
 def faasr_release(faasr_payload):
     """
-    This function releases the lock by deleting the lock file from s3
-    """
+    Release lock by deleting the lock file from s3
 
+    Arguments:
+        faasr_payload: payload dict (FaaSr)
+    """
     # The lock file is in the form {FaaSrLog}/{InvocationID}/{FunctionInvoke}./lock
     lock_name = f"{faasr_payload['FaaSrLog']}/{faasr_payload['InvocationID']}/{faasr_payload['FunctionInvoke']}./lock"
 
@@ -111,12 +124,20 @@ def faasr_release(faasr_payload):
 
 def anyone_else_interested(boto3_client, flag_path, flag_name):
     """
-    This function checks flags to see whether or not other
+    Check flags to see whether or not other
     functions are trying to acquire the lock
+
+    Arguments:
+        boto3_client: boto3 client object
+        flag_path: path to dir holding flags in s3
+        flag_name: name of current function's flag
+
+    Returns:
+        bool -- True if other flags are present in S3, False if not
     """
 
     # Get a list of flag names
-    check_pool = s3_client.list_objects_v2(Bucket=target_s3["Bucket"], Prefix=flag_path)
+    check_pool = boto3_client.list_objects_v2(Bucket=boto3_client["Bucket"], Prefix=flag_path)
 
     pool = [x["Key"] for x in check_pool["Contents"]]
     # If our flag is in S3 and is the only one, return false

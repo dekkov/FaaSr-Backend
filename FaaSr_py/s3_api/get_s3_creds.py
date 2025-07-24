@@ -5,6 +5,14 @@ from collections import namedtuple
 def faasr_get_s3_creds(config, server_name="", faasr_prefix=""):
     """
     Returns credentials needed to create an Apache Pyarrow S3FileSystem instance
+
+    Arguments:
+        config: FaaSr payload dict
+        server_name: str -- name of S3 data store to get credentials from
+        faasr_prefix: str -- prefix to filter objects in S3 bucket
+    Returns:
+        namedtuple: A namedtuple with the fields
+        (bucket, region, endpoint, secret_key, access_key, anonymous)
     """
     # fetch server name if one is not provided
     if server_name == "":

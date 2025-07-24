@@ -52,12 +52,21 @@ class Exit(BaseModel):
 
 # registers request and return handlers with a faasr_instance
 def register_request_handler(faasr_instance):
+    """"
+    Setup FastAPI request handlers for FaaSr functions
+
+    Arguments:
+        faasr_instance: FaaSr payload dict
+    """
     return_val = None
     message = None
     error = False
 
     @faasr_api.post("/faasr-action")
     def faasr_request_handler(request: Request):
+        """
+        Handler for FaaSr function requests
+        """
         nonlocal error
         print(f'{{"Processing request": "{request.ProcedureID}"}}')
 
@@ -95,11 +104,17 @@ def register_request_handler(faasr_instance):
 
     @faasr_api.post("/faasr-return")
     def faasr_return_handler(return_obj: Return):
+        """
+        Handler for FaaSr function return values
+        """
         nonlocal return_val
         return_val = return_obj.FunctionResult
 
     @faasr_api.post("/faasr-exit")
     def faasr_get_exit_handler(exit_obj: Exit):
+        """
+        Handler for FaaSr function exit values
+        """
         nonlocal error, message
         print(exit_obj)
         if exit_obj.Error:
@@ -108,6 +123,9 @@ def register_request_handler(faasr_instance):
 
     @faasr_api.get("/faasr-get-return")
     def faasr_get_return_handler():
+        """
+        Handler to get the return value from the FaaSr function
+        """
         return Result(FunctionResult=return_val, Error=error, Message=message)
 
 
@@ -118,6 +136,11 @@ def faasr_echo(message: str):
 
 # poll server until it's ready
 def wait_for_server_start(port):
+    """
+    Polls the server until it is ready to accept requests
+    Arguments:
+        port: int -- port the server is running on
+    """
     while True:
         try:
             r = requests.get(
@@ -130,8 +153,15 @@ def wait_for_server_start(port):
             continue
 
 
-# starts a server listening on localhost port 8000
+# starts a server listening on localhost
 def run_server(faasr_instance, port):
+    """
+    Starts a FastAPI server to handle FaaSr requests
+    
+    Arguments:
+        faasr_instance: FaaSr payload dict
+        port: int -- port to run the server on
+    """
     register_request_handler(faasr_instance)
     config = uvicorn.Config(faasr_api, host="127.0.0.1", port=port)
     server = uvicorn.Server(config)

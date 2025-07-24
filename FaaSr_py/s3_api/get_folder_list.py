@@ -5,6 +5,13 @@ import sys
 def faasr_get_folder_list(config, server_name="", faasr_prefix=""):
     """
     This function gets a list of objects in the S3 bucket
+
+    Arguments:
+        config: FaaSr payload dict
+        server_name: str -- name of S3 data store to get folder list from
+        faasr_prefix: str -- prefix to filter objects in S3 bucket
+    Returns:
+        list: List of objects in the S3 bucket with the specified prefix
     """
 
     # Get server name from payload if one is not providedS

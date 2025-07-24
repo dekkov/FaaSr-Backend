@@ -8,7 +8,7 @@ def faasr_get_file(
     config, local_file, remote_file, server_name="", local_folder=".", remote_folder="."
 ):
     """
-    This function downloads a file from S3
+    Download file from S3
     """
     if not server_name:
         server_name = config["DefaultDataStore"]
@@ -46,9 +46,23 @@ def faasr_get_file(
     if os.path.exists(get_file):
         os.remove(get_file)
 
-    # Download file from S3
-    result = s3_client.download_file(
-        Bucket=target_s3["Bucket"], Key=get_file_s3, Filename=get_file
-    )
+    print(get_file_s3, get_file)
 
-    # to-do error if fail
+    # Download file from S3
+    try:
+        result = s3_client.download_file(
+            Bucket=target_s3["Bucket"], Key=get_file_s3, Filename=get_file
+        )
+    except s3_client.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            err_msg = (
+                f'{{faasr_get_file: S3 object not found: s3://{target_s3['Bucket']}/{get_file_s3}}}'
+                )
+            print(err_msg)
+            sys.exit(1)
+        else:
+            err_msg = f'{{faasr_get_file: ERROR -- {e}}}'
+            print(err_msg)
+            sys.exit(1)
+            
+

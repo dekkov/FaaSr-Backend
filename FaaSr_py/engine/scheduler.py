@@ -11,10 +11,10 @@ from FaaSr_py.s3_api import faasr_log
 
 
 class Scheduler:
+    """
+    Handles scheduling of next functions in the DAG
+    """
     def __init__(self, faasr: FaaSr):
-        """
-        Handles scheduling of next functions in the DAG
-        """
         if not isinstance(faasr, FaaSr):
             err_msg = "{scheduler.py: initializer must be FaaSr instance}"
             print(err_msg)
@@ -24,6 +24,9 @@ class Scheduler:
     def trigger(self, return_val=None):
         """
         Triggers the next actions in the DAG
+
+        Arguments:
+            return_val: any -- value returned by the user function, used for conditionals
         """
         # Get a list of the next functions to invoke
         curr_func = self.faasr["FunctionInvoke"]
@@ -59,6 +62,9 @@ class Scheduler:
     def trigger_func(self, function):
         """
         Handles a single trigger
+
+        Arguments:
+            function: str -- name of the function to trigger
         """
         # Split function name and rank if needed
         parts = re.split(r"[()]", function)
@@ -104,6 +110,10 @@ class Scheduler:
     def invoke_gh(self, next_compute_server, function):
         """
         Trigger GH function
+
+        Arguments:
+            next_compute_server: dict -- next compute server configuration
+            function: str -- name of the function to invoke
         """
         # Get env values for GH actions
         pat = next_compute_server["Token"]
@@ -210,6 +220,10 @@ class Scheduler:
     def invoke_lambda(self, next_compute_server, function):
         """
         Trigger AWS Lambda function
+
+        Arguments:
+            next_compute_server: dict -- next compute server configuration
+            function: str -- name of the function to invoke
         """
         # Create client for invoking lambda function
         lambda_client = boto3.client(
@@ -249,6 +263,10 @@ class Scheduler:
     def invoke_ow(self, next_compute_server, function):
         """
         Trigger OpenWhisk function
+
+        Arguments:
+            next_compute_server: dict -- next compute server configuration
+            function: str -- name of the function to invoke
         """
         # Get ow credentials
         endpoint = next_compute_server["Endpoint"]

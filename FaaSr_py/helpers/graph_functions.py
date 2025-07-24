@@ -8,7 +8,10 @@ from jsonschema.exceptions import ValidationError
 
 def validate_json(payload):
     """
-    This method is used to verify that the JSON payload is compliant with the FaaSr schema
+    Verifies JSON payload is compliant with the FaaSr schema
+
+    Arguments:
+        payload: FaaSr payload to validate
     """
     if isinstance(payload, str):
         payload = json.loads(payload)
@@ -29,14 +32,18 @@ def validate_json(payload):
 
 
 def is_cyclic(adj_graph, curr, visited, stack):
-    """This recursive function checks if there is a cycle in a directed
+    """
+    Recursive function that if there is a cycle in a directed
     graph specified by an adjacency list
 
-    parameters:
-        adj_graph(dict): adjacency list for graph
-        curr(str): current node
-        visited(set): set of visited nodes
-        stack(list[]): list of nodes in recursion call stack
+    Arguments:
+        adj_graph: adjacency list for graph (dict)
+        curr: current node
+        visited: set of visited nodes (set)
+        stack: list of nodes in recursion call stack (list)
+
+    Returns:
+        bool: True if cycle exists, False otherwise
     """
     # if the current node is in the recursion call
     # stack then there must be a cycle in the graph
@@ -73,7 +80,10 @@ def check_dag(payload):
     This method checks for cycles, repeated function names, or unreachable nodes in the workflow
     and aborts if it finds any
 
-    returns a list of predecessors for the current function
+    Arguments:
+        payload: FaaSr payload dict
+    Returns:
+        predecessors: dict -- map of function predecessors
     """
 
     adj_graph = defaultdict(list)
@@ -137,8 +147,8 @@ def check_dag(payload):
 def predecessors_list(adj_graph):
     """This function returns a map of action predecessor pairs
 
-    parameters:
-        adj_graph(dict): adjacency list for graph (function: successor)
+    Arguments:
+        adj_graph: adjacency list for graph -- dict(function: successor)
     """
     pre = defaultdict(list)
     for func1 in adj_graph:

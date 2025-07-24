@@ -21,6 +21,12 @@ def local_wrap(function):
 def faasr_import_function(path, func_name):
     """
     Returns a function object given name and absolute path
+
+    Arguments:
+        path: str -- absolute path to local function
+        func_name: str -- name of function to import
+    Returns:
+        function: function object | None
     """
     if not path.exists():
         raise FileNotFoundError("ERROR -- path to local function does not exist")
@@ -43,7 +49,11 @@ def faasr_import_function_walk(func_name, directory="."):
     """
     Walks directory until it finds function
 
-    Returns function | None
+    Arguments:
+        func_name: str -- name of function to import
+        directory: str -- directory to walk
+    Returns:
+        function: function object | None
     """
     ignore_files = [
         "test_gh_invoke.py",
@@ -88,16 +98,20 @@ def faasr_import_function_walk(func_name, directory="."):
     return None
 
 
-def source_packages(__globals__, packages):
+def source_packages(namespace, packages):
     """
     Sources packages
+
+    Arguments:
+        namespace: __globals__ namespace of function to source packages to
+        packages: list of package names
     """
     if not isinstance(packages, list):
         packages = [packages]
 
     for package in packages:
         try:
-            __globals__[package] = importlib.import_module(package)
+            namespace[package] = importlib.import_module(package)
             msg = f'{{"py_func_helper.py: succesfully imported package {package}}}'
             print(msg)
         except ImportError as e:

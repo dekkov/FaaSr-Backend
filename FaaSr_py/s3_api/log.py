@@ -10,6 +10,10 @@ from FaaSr_py.helpers.s3_helper_functions import get_logging_server
 def faasr_log(config, log_message):
     """
     This function logs a message in the FaaSr log
+
+    Arguments:
+        config: FaaSr payload dict
+        log_message: str -- message to log
     """
 
     log_folder = Path(config['FaaSrLog']) / config['InvocationID']

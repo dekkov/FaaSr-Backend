@@ -11,4 +11,11 @@ def default_func(test=32):
     print(f"rand uuid: {uuid}")
     print(uuid)
     print(f"param test: {test}")
+    filename = "add_result_500.txt"
+    folder = "testadd"
+    faasr_get_file(local_file=filename, remote_file=filename, remote_folder=folder)
+    with open(f"/tmp/{filename}", 'r') as f:
+        print(f"downloaded content: {f.readline()}")
+    faasr_delete_file(remote_file=filename, remote_folder=folder)
+    print("file deleted -- returning True")
     return True

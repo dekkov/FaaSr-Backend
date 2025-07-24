@@ -1,53 +1,51 @@
-import requests
+
 import os
-import tarfile
+import re
 import sys
+import requests
+import tarfile
+import shutil
 import string
 import random
 import subprocess
-import re
 import base64
 import importlib
 
 
 def faasr_get_github_clone(url, base_dir="/tmp"):
     """
-    Downloads a github repo clone from the repo url
+    Downloads a github repo clone from the repo's url
+
+    Arguments:
+        url: HTTPS url to git repo
+        base_dir: directory to which GitHub repo should be cloned
     """
-    # regex to check that path is github url
     pattern = r"([^/]+/[^/]+)\.git$"
-    repo_match = re.search(pattern, url)
+    match = re.search(pattern, url)
+    if not match:
+        raise ValueError(f"Invalid GitHub URL: {url} — expected to end in owner/repo.git")
 
-    # extract repo name if match is found
-    if repo_match:
-        repo_name = re.sub(r"\.git$", "", repo_match.group(1))
-    else:
-        # if path doesn't match, then create random repo name
-        repo_name = "".join(
-            random.choice(string.ascii_lowercase + string.digits) for _ in range(8)
-        )
-
-    repo_path = f"{base_dir}/{repo_name}"
+    repo_name = match.group(1)
+    repo_path = os.path.join(base_dir, repo_name)
 
     if os.path.isdir(repo_path):
-        import shutil
-
         shutil.rmtree(repo_path)
 
-    # clone repo using subprocess command
-    clone_command = ["git", "clone", "--depth=1", url, repo_path]
-    check = subprocess.run(clone_command, text=True)
+    result = subprocess.run(["git", "clone", "--depth=1", url, repo_path], text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"Git clone failed for {url}")
 
-    # check return code for git clone command. If non-zero, then throw error
-    if check.returncode != 0:
-        err_msg = f'{{"faasr_install_git_repo":"no repo found, check repository url: {url}"}}'
-        print(err_msg)
-        sys.exit(1)
+    return repo_path
 
 
 def faasr_get_github(faasr_source, path, token=None):
     """
     Downloads a repo specified by a github path [username/repo] to a tarball file
+
+    Arguments:
+        faasr_source: payload dict (FaaSr)
+        path: username/repo/path to file
+        token: GitHub PAT
     """
     # ensure path has two parts [username/repo]
     parts = path.split("/")
@@ -94,7 +92,7 @@ def faasr_get_github(faasr_source, path, token=None):
             if path:
                 extract_path = os.path.join(root_dir, path)
                 members = [
-                    m for m in tar.getmembers() if m.name.startswith(extract_path)
+                    mem for mem in tar.getmembers() if mem.name.startswith(extract_path)
                 ]
                 tar.extractall(path=f"/tmp/functions{faasr_source['InvocationID']}", members=members)
             else:
@@ -119,7 +117,12 @@ def faasr_get_github_raw(token, path):
     """
     Gets the contents of a single file on GitHub
 
-    @return GitHub file (str)
+    Arguments:
+        token: GitHub PAT
+        path: username/repo/path to file
+
+    Returns:
+        Raw GitHub file (UTF-8 string)
     """
     parts = path.split("/")
     if len(parts) < 3:
@@ -164,6 +167,12 @@ def faasr_get_github_raw(token, path):
 def faasr_install_git_repos(faasr_source, func_type, gits, token):
     """
     Downloads content from git repo(s)
+
+    Arguments:
+        faasr_source: faasr payload (FaaSr)
+        func_type: Python or R
+        gits: paths repos or files to download
+        token: GitHub PAT
     """
     if isinstance(gits, str):
         gits = [gits]
@@ -201,8 +210,6 @@ def faasr_install_git_repos(faasr_source, func_type, gits, token):
 def faasr_pip_install(package):
     """
     Pip installs a single PyPI package
-
-    Returns the name used to source package
     """
     # run pip install [package] command
     if not package:
@@ -215,8 +222,6 @@ def faasr_pip_install(package):
 def faasr_install_cran(package, lib_path = None):
     """
     Installs a single cran package
-
-    Returns the name used to source package
     """
     if not package:
         print("{\"faasr_install_cran\":\"No CRAN package dependency\"}\n")
@@ -233,8 +238,6 @@ def faasr_install_cran(package, lib_path = None):
 def faasr_pip_gh_install(path):
     """
     Installs a single package specified via a github path (name/path) using pip
-
-    Returns the name used to source package
     """
     parts = path.split("/")
     if len(parts) < 2:
@@ -251,15 +254,10 @@ def faasr_pip_gh_install(path):
     command = ["pip", "install", "--no-input", gh_url]
     subprocess.run(command, text=True)
 
-    # assumes that repo name and module name are the same
-    return reponame
-
 
 def faasr_install_git_packages(gh_packages, type, lib_path=None):
     """
     Install a list of git packages
-
-    Returns names used to source packages (list)
     """
     if not gh_packages:
         print('{"faasr_install_git_package":"No git package dependency"}\n')
@@ -279,6 +277,13 @@ def faasr_install_git_packages(gh_packages, type, lib_path=None):
 
 
 def faasr_func_dependancy_install(faasr_source, action):
+    """
+    Installs the dependencies for an action's function
+
+    Arguments:
+        faasr_source: faasr payload (FaaSr)
+        action: name of current action
+    """
     func_type, func_name = action["Type"], action["FunctionName"]
 
     # get files from git repo

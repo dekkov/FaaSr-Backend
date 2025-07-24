@@ -3,7 +3,6 @@ import sys
 
 
 def faasr_put_file(local_file, remote_file, server_name="", local_folder=".", remote_folder="."):
-    print("put file wrapper!")
     request_json = {
         "ProcedureID": "faasr_put_file",
         "Arguments": {"local_file": local_file, 

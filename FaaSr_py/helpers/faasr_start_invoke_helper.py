@@ -291,7 +291,6 @@ def faasr_func_dependancy_install(faasr_source, action):
 
     # get token if present
     token = os.getenv("TOKEN")
-    print(f"token: {token}")
         
     if not token:
         msg = '{"faasr_install_git_repo":"Warning: No GH token used. May hit rate limits when installing functions"}\n'

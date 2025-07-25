@@ -13,11 +13,11 @@ def local_wrap(function):
     Wraps stdout of debug function
     """
     def formatting(*args, **kwargs):
-        print("---------LOCAL FUNC OUTPUT---------")
+        print("-----------------LOCAL FUNC OUTPUT-----------------")
         print(f"ARGS: {args}")
         print(f"KWARGS: {kwargs}")
         result = function(*args, **kwargs)
-        print("-----------------------------------")
+        print("---------------------------------------------------")
         return result
     return formatting
 

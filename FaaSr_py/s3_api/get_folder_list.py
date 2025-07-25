@@ -6,14 +6,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def faasr_get_folder_list(config, server_name="", faasr_prefix=""):
+def faasr_get_folder_list(config, server_name="", prefix=""):
     """
     Get a list of objects in the S3 bucket
 
     Arguments:
         config: FaaSr payload dict
         server_name: str -- name of S3 data store to get folder list from
-        faasr_prefix: str -- prefix to filter objects in S3 bucket
+        prefix: str -- prefix to filter objects in S3 bucket
     Returns:
         list: List of objects in the S3 bucket with the specified prefix
     """
@@ -42,7 +42,7 @@ def faasr_get_folder_list(config, server_name="", faasr_prefix=""):
     )
 
     # List objects from S3 bucket
-    result = s3_client.list_objects_v2(Bucket=target_s3["Bucket"], Prefix=faasr_prefix)
+    result = s3_client.list_objects_v2(Bucket=target_s3["Bucket"], Prefix=prefix)
     if "Contents" in result:
         result = [content["Key"] for content in result["Contents"]]
         result = [obj for obj in result if not obj.endswith("/")]

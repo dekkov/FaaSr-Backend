@@ -7,16 +7,15 @@ from collections import namedtuple
 logger = logging.getLogger(__name__)
 
 
-def faasr_get_s3_creds(config, server_name="", faasr_prefix=""):
+def faasr_get_s3_creds(config, server_name=""):
     """
     Returns credentials needed to create an Apache Pyarrow S3FileSystem instance
 
     Arguments:
         config: FaaSr payload dict
         server_name: str -- name of S3 data store to get credentials from
-        faasr_prefix: str -- prefix to filter objects in S3 bucket
     Returns:
-        namedtuple: A namedtuple with the fields
+        dict: A dict with the fields
         (bucket, region, endpoint, secret_key, access_key, anonymous)
     """
     # fetch server name if one is not provided
@@ -31,7 +30,7 @@ def faasr_get_s3_creds(config, server_name="", faasr_prefix=""):
 
     target_s3 = config["DataStores"][server_name]
 
-    if not target_s3["Anonymous"] or len(target_s3["Anonymous"]) == 0:
+    if not target_s3.get("Anonymous") or len(target_s3["Anonymous"]) == 0:
         anonymous = False
     else:
         match (target_s3["Anonymous"].tolower()):
@@ -47,19 +46,20 @@ def faasr_get_s3_creds(config, server_name="", faasr_prefix=""):
         secret_key = None
         access_key = None
     else:
-        secret_key = target_s3["SecretKey"]
-        access_key = target_s3["AccessKey"]
-
-    s3_creds = namedtuple(
-        "bucket", "region", "endpoint", "secret_key", "access_key", "anonymous"
-    )
+        try:
+            secret_key = target_s3["SecretKey"]
+            access_key = target_s3["AccessKey"]
+        except KeyError as e:
+            err_msg = f'{{"faasr_get_arrow":"Missing key in S3 data store: {e}"}}\n'
+            print(err_msg)
+            sys.exit(1)
 
     # return credentials as namedtuple
-    return s3_creds(
-        target_s3["Bucket"],
-        target_s3["Region"],
-        target_s3["Endpoint"],
-        secret_key,
-        access_key,
-        anonymous,
-    )
+    return {
+        "bucket": target_s3["Bucket"],
+        "region": target_s3["Region"],
+        "endpoint": target_s3["Endpoint"],
+        "secret_key": secret_key,
+        "access_key": access_key,
+        "anonymous": anonymous,
+    }

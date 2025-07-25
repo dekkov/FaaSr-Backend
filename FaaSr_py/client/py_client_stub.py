@@ -8,13 +8,25 @@ def faasr_put_file(local_file, remote_file, server_name="", local_folder=".", re
     """
     request_json = {
         "ProcedureID": "faasr_put_file",
-        "Arguments": {"local_file": local_file, 
-                    "remote_file": remote_file,
+        "Arguments": {"local_file": str(local_file), 
+                    "remote_file": str(remote_file),
                     "server_name": server_name,
-                    "local_folder": local_folder,
-                    "remote_folder": remote_folder},
+                    "local_folder": str(local_folder),
+                    "remote_folder": str(remote_folder)},
     }
     r = requests.post("http://127.0.0.1:8000/faasr-action", json=request_json)
+    try:
+        response = r.json()
+        if response.get("Success", False):
+            return True
+        else:
+            err_msg = f'{{"faasr_put_file": "Request to FaaSr RPC failed"}}'
+            print(err_msg)
+            sys.exit(1)
+    except Exception as e:
+        err_msg = f'{{"faasr_put_file": "Failed to parse response from FaaSr RPC -- {e}"}}'
+        print(err_msg)
+        sys.exit(1)
     
 
 def faasr_get_file(local_file, remote_file, server_name="", local_folder=".", remote_folder="."):
@@ -23,13 +35,25 @@ def faasr_get_file(local_file, remote_file, server_name="", local_folder=".", re
     """
     request_json = {
         "ProcedureID": "faasr_get_file",
-        "Arguments": {"local_file": local_file, 
-                    "remote_file": remote_file,
+        "Arguments": {"local_file": str(local_file), 
+                    "remote_file": str(remote_file),
                     "server_name": server_name,
-                    "local_folder": local_folder,
-                    "remote_folder": remote_folder}
+                    "local_folder": str(local_folder),
+                    "remote_folder": str(remote_folder)},
     }
     r = requests.post("http://127.0.0.1:8000/faasr-action", json=request_json)
+    try:
+        response = r.json()
+        if response.get("Success", False):
+            return True
+        else:
+            err_msg = f'{{"faasr_get_file": "Request to FaaSr RPC failed"}}'
+            print(err_msg)
+            sys.exit(1)
+    except Exception as e:
+        err_msg = f'{{"faasr_get_file": "Failed to parse response from FaaSr RPC -- {e}"}}'
+        print(err_msg)
+        sys.exit(1)
 
 
 def faasr_delete_file(remote_file, server_name="", remote_folder=""):
@@ -38,11 +62,23 @@ def faasr_delete_file(remote_file, server_name="", remote_folder=""):
     """
     request_json = {
         "ProcedureID": "faasr_delete_file",
-        "Arguments": {"remote_file": remote_file, 
+        "Arguments": {"remote_file": str(remote_file), 
                     "server_name": server_name,
-                    "remote_folder": remote_folder}
+                    "remote_folder": str(remote_folder)},
     }
     r = requests.post("http://127.0.0.1:8000/faasr-action", json=request_json)
+    try:
+        response = r.json()
+        if response.get("Success", False):
+            return True
+        else:
+            err_msg = f'{{"faasr_delete_file": "Request to FaaSr RPC failed"}}'
+            print(err_msg)
+            sys.exit(1)
+    except Exception as e:
+        err_msg = f'{{"faasr_delete_file": "Failed to parse response from FaaSr RPC -- {e}"}}'
+        print(err_msg)
+        sys.exit(1)
 
 
 def faasr_log(log_message):
@@ -58,16 +94,28 @@ def faasr_log(log_message):
         "Arguments": {"log_message": log_message}
     }
     r = requests.post("http://127.0.0.1:8000/faasr-action", json=request_json)
+    try:
+        response = r.json()
+        if response.get("Success", False):
+            return True
+        else:
+            err_msg = f'{{"faasr_log": "Request to FaaSr RPC failed"}}'
+            print(err_msg)
+            sys.exit(1)
+    except Exception as e:
+        err_msg = f'{{"faasr_log": "Failed to parse response from FaaSr RPC -- {e}"}}'
+        print(err_msg)
+        sys.exit(1)
 
 
-def faasr_get_folder_list(server_name="", faasr_prefix = ""):
+def faasr_get_folder_list(server_name="", prefix = ""):
     """
     Get the list of folders from the FaaSr server
     """
     request_json = {
         "ProcedureID": "faasr_get_folder_list",
         "Arguments": {"server_name": server_name,
-                     "faasr_prefix": faasr_prefix}
+                     "prefix": str(prefix)}
     }
     r = requests.post("http://127.0.0.1:8000/faasr-action", json=request_json)
     try:
@@ -99,7 +147,6 @@ def faasr_get_s3_creds():
     """
     Get S3 credentials from the server
     
-
     Returns:        
         dict -- S3 credentials
     """
@@ -112,7 +159,7 @@ def faasr_get_s3_creds():
         response = r.json()
         return response["Data"]["s3_creds"]
     except Exception as e:
-        err_msg = f"{{py_client_stub: failed to get S3 credentials from server -- {e}}}"
+        err_msg = f"{{faasr_get_s3_creds: failed to get S3 credentials from server -- {e}}}"
         print(err_msg)
         sys.exit(1)
 
@@ -126,7 +173,18 @@ def faasr_return(return_value=None):
         "FunctionResult": return_value
     }
     r = requests.post("http://127.0.0.1:8000/faasr-return", json=return_json)
-    sys.exit()
+    try:
+        response = r.json()
+        if response.get("Success", False):
+            sys.exit(0)
+        else:
+            err_msg = f'{{"faasr_return": "Request to FaaSr RPC failed"}}'
+            print(err_msg)
+            sys.exit(1)
+    except Exception as e:
+        err_msg = f'{{"faasr_return": "Failed to parse response from FaaSr RPC -- {e}"}}'
+        print(err_msg)
+        sys.exit(1)
 
 
 
@@ -136,4 +194,15 @@ def faasr_exit (message=None, error=True):
         "Message": message
     }
     r = requests.post("http://127.0.0.1:8000/faasr-exit", json=exit_json)
-    sys.exit()
+    try:
+        response = r.json()
+        if response.get("Success", False):
+            sys.exit(0)
+        else:
+            err_msg = f'{{"faasr_exit": "Request to FaaSr RPC failed"}}'
+            print(err_msg)
+            sys.exit(1)
+    except Exception as e:
+        err_msg = f'{{"faasr_exit": "Failed to parse response from FaaSr RPC -- {e}"}}'
+        print(err_msg)
+        sys.exit(1)

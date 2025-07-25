@@ -24,6 +24,7 @@ valid_functions = {
     "faasr_delete_file",
     "faasr_get_folder_list",
     "faasr_log",
+    "faasr_rank"
 }
 
 
@@ -34,7 +35,7 @@ class Request(BaseModel):
 
 class Response(BaseModel):
     Success: bool
-    Data: dict
+    Data: dict | None = None
     Message: str | None = None
 
 
@@ -70,12 +71,7 @@ def register_request_handler(faasr_instance):
         Handler for FaaSr function requests
         """
         nonlocal error
-        print(f'{{"Processing request": "{request.ProcedureID}"}}')
-
-        if request.ProcedureID not in valid_functions:
-            print({{"faasr_server.py: ERROR -- invalid FaaSr function call"}})
-            error = True
-            sys.exit(1)
+        print(f'{{"Processing request": "{request.ProcedureID}"}}', flush=True)
         args = request.Arguments or {}
         return_obj = Response(Success=True, Data={})
         try:
@@ -93,11 +89,15 @@ def register_request_handler(faasr_instance):
                         config=faasr_instance, **args
                     )
                 case "faasr_rank":
-                    return_obj.Data["rank"] = faasr_rank()
+                    return_obj.Data["rank"] = faasr_rank(config=faasr_instance)
                 case "faasr_get_s3_creds":
                     return_obj.Data["s3_creds"] = faasr_get_s3_creds(
                         config=faasr_instance, **args
                     )
+                case _:
+                    print(f"{{faasr_server.py: ERROR -- {request.ProcedureID} is not a valid FaaSr function call}}")
+                    error = True
+                    sys.exit(1)
         except Exception as e:
             err_msg = f"{{faasr_server: ERROR -- failed to invoke {request.ProcedureID} -- {e}}}"
             faasr_log(config=faasr_instance, log_message=err_msg)
@@ -113,6 +113,7 @@ def register_request_handler(faasr_instance):
         """
         nonlocal return_val
         return_val = return_obj.FunctionResult
+        return Response(Success=True)
 
     @faasr_api.post("/faasr-exit")
     def faasr_get_exit_handler(exit_obj: Exit):
@@ -124,6 +125,7 @@ def register_request_handler(faasr_instance):
         if exit_obj.Error:
             error = True
             message = exit_obj.Message
+        return Response(Success=True)
 
     @faasr_api.get("/faasr-get-return")
     def faasr_get_return_handler():

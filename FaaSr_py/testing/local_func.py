@@ -1,5 +1,6 @@
 import random2
 import uuid6
+from pathlib import Path
 
 def default_func(test=32):
     """
@@ -11,11 +12,33 @@ def default_func(test=32):
     print(f"rand uuid: {uuid}")
     print(uuid)
     print(f"param test: {test}")
-    filename = "add_result_500.txt"
-    folder = "testadd"
-    faasr_get_file(local_file=filename, remote_file=filename, remote_folder=folder)
-    with open(f"/tmp/{filename}", 'r') as f:
-        print(f"downloaded content: {f.readline()}")
+
+    filename = Path("testfile.txt")
+    folder = Path("test_folder")
+
+    # test rank
+    print(faasr_rank())
+
+    local_file = Path("tmp") / filename
+    local_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(local_file, 'w') as f:
+        f.write("test file content")
+    faasr_put_file(local_file=local_file, remote_file=filename, remote_folder=folder)
+
+    # test folder list
+    print(faasr_get_folder_list(prefix=folder))
+
+    # test get file
+    faasr_get_file(local_file="redownloaded.txt",local_folder = "/tmp/", remote_file=filename, remote_folder=folder)
+    with open("/tmp/redownloaded.txt", 'r') as f:
+        print(f"redownloaded content: {f.readline()}")
+
+    # test delete file    
     faasr_delete_file(remote_file=filename, remote_folder=folder)
-    print("file deleted -- returning True")
+    print(faasr_get_folder_list(prefix=folder))
+
+    # test get s3 creds
+    s3_creds = faasr_get_s3_creds()
+    print(f"bucket: {s3_creds["bucket"]}")
+    print(f"s3_creds: {s3_creds}")
     return True

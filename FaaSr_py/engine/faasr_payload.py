@@ -30,7 +30,7 @@ class FaaSr:
         if token is None:
             token = os.getenv("TOKEN")
 
-        raw_payload = faasr_get_github_raw(token, path=url)
+        raw_payload = faasr_get_github_raw(token=token, path=url)
         base_workflow = json.loads(raw_payload)
 
         if global_config.SKIP_SCHEMA_VALIDATE:

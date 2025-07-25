@@ -1,10 +1,15 @@
 import json
 import sys
 import re
+import logging
+
 from pathlib import Path
 from collections import defaultdict
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
+
+
+logger = logging.getLogger(__name__)
 
 
 def validate_json(payload):

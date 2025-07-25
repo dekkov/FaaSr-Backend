@@ -7,9 +7,13 @@ import tarfile
 import shutil
 import string
 import random
+import logging
 import subprocess
 import base64
 import importlib
+
+
+logger = logging.getLogger(__name__)
 
 
 def faasr_get_github_clone(url, base_dir="/tmp"):

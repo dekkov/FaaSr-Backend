@@ -1,7 +1,11 @@
 import os
 import sys
 import uuid
+import logging
 import importlib
+
+
+logger = logging.getLogger(__name__)
 
 
 def local_wrap(function):

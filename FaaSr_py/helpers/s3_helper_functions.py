@@ -1,7 +1,10 @@
 import uuid
 import sys
 import boto3
+import logging
 
+
+logger = logging.getLogger(__name__)
 
 
 def validate_uuid(uuid_value):

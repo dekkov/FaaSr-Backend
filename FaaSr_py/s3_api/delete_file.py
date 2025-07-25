@@ -1,11 +1,15 @@
 import re
 import boto3
+import logging
 import sys
+
+
+logger = logging.getLogger(__name__)
 
 
 def faasr_delete_file(config, remote_file, server_name="", remote_folder=""):
     """
-    This function deletes a file from S3
+    Deletes a file from S3
 
     Arguments:
         config: FaaSr payload dict

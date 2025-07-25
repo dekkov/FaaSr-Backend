@@ -1,8 +1,12 @@
-from pathlib import Path
+import logging
 
+from pathlib import Path
 from FaaSr_py.client.py_client_stub import *
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.helpers.py_func_helper import faasr_import_function_walk, faasr_import_function, source_packages, local_wrap
+
+
+logger = logging.getLogger(__name__)
 
 
 def run_py_function(faasr, func_name, args, imports):

@@ -1,12 +1,25 @@
 import boto3
-import re
+import re  
+import logging
+
 from pathlib import Path
 from FaaSr_py.config.debug_config import global_config
 
 
+logger = logging.getLogger(__name__)
+
+
 def faasr_put_file(config, local_file, remote_file, server_name="", local_folder=".", remote_folder="."):
     """
-    This function puts an object in S3 bucket
+    Uploads a file to S3 bucket
+
+    Arguments:
+        config: FaaSr payload dict
+        local_file: str -- name of local file to upload
+        remote_file: str -- name of file to upload to S3
+        server_name: str -- name of S3 data store to put file in
+        local_folder: str -- local folder to upload file from
+        remote_folder: str -- folder in S3 to put file in
     """
 
     # Remove "/" in the folder & file name to avoid situations:
@@ -72,3 +85,4 @@ def faasr_put_file(config, local_file, remote_file, server_name="", local_folder
             )
 
     # to-do: error if fail
+

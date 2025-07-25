@@ -1,8 +1,9 @@
 import os
-import subprocess
-import json
-import requests
 import sys
+import json
+import logging
+import requests
+import subprocess
 from multiprocessing import Process
 from pathlib import Path
 
@@ -11,6 +12,9 @@ from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.s3_api import faasr_log, faasr_put_file
 from FaaSr_py.server.faasr_server import run_server, wait_for_server_start
 from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_func_dependancy_install
+
+
+logger = logging.getLogger(__name__)
 
 
 class Executor:
@@ -77,11 +81,8 @@ class Executor:
                             f"non-zero exit code ({r_func.returncode}) from R function"
                         )
             except Exception as e:
-                nat_err_msg = f'{{"faasr_run_user_function": "Error running user function -- {e}"}}'
-                err_msg = f"Errors in the user function: {str(self.faasr["FunctionInvoke"])} check the log for the detail "
-                faasr_log(self.faasr, nat_err_msg)
-                # to-do: remove print
-                print(nat_err_msg)
+                err_msg = f'{{"faasr_run_user_function": "Error running user function -- {e}"}}'
+                faasr_log(self.faasr, err_msg)
                 print(err_msg)
                 sys.exit(1)
         else:

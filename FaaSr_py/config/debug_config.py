@@ -1,16 +1,18 @@
 import json
-import importlib
 import uuid
+import logging
+import importlib
 from pathlib import Path
+
+
+logger = logging.getLogger(__name__)
 
 
 class Config:
     """
     Stores FaaSr settings
-    Batch logging
     """
     _config_file = None
-    _log_buffer = None
     
     def __init__(self, config_path):
         if Config._config_file is None:
@@ -33,17 +35,6 @@ class Config:
             Config._log_buffer = []
         else:
             raise RuntimeError("cannot initialize Config outside of debug_config.py")
-
-    def __del__(self):
-        """
-        FLUSH SHOULD BE CALLED EXPLICITLY AT END OF EACH PROCESS -- destructor is a backup to flush log buffer
-        """
-        try:
-            if Config._log_buffer:
-                self.flush_log()
-        except Exception as e:
-            err_msg = f'{{debug_config.py: failed to flush log in destructor -- {e}}}'
-            print(err_msg)
 
     def _read_config(self, key):
         """
@@ -77,18 +68,6 @@ class Config:
         self.LOCAL_FUNC_ARGS = self.__dict__["_LOCAL_FUNC_ARGS"]
         self.USE_LOCAL_FILE_SYSTEM = self.__dict__["_USE_LOCAL_FILE_SYSTEM"]
         self.LOCAL_FILE_SYSTEM_DIR = self.__dict__["_LOCAL_FILE_SYSTEM_DIR"]
-
-    def log(self, message):
-        """
-        Stores logs to be batch uploaded to S3 at end of function
-        """
-        Config._log_buffer.append(message)
-
-    def flush_log(self):
-        """
-        (to-do) Uploads all messages inside of config to DevLog and clear buffer
-        """
-        print('config log upload not implemented')
 
     """
     Getter and setter methods do not update internal member variables.

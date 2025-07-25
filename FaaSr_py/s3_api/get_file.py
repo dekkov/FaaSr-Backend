@@ -1,7 +1,11 @@
 import boto3
+import logging
 import re
 import os
 import sys
+
+
+logger = logging.getLogger(__name__)
 
 
 def faasr_get_file(

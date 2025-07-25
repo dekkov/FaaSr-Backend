@@ -5,9 +5,8 @@ def faasr_rank(faasr):
     """
     Returns the rank # and total rank of the current function
 
-    RETURN: namedtuple with elements MaxRank and Rank
-
-    In case where there is no rank, returns MaxRank, Rank = None
+    Returns: 
+        namedtuple with elements MaxRank and Rank | None if rank is not set
     """
     # get current function name
     curr_func_name = faasr["FunctionInvoke"]

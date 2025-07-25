@@ -1,10 +1,14 @@
 import boto3
 import sys
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def faasr_get_folder_list(config, server_name="", faasr_prefix=""):
     """
-    This function gets a list of objects in the S3 bucket
+    Get a list of objects in the S3 bucket
 
     Arguments:
         config: FaaSr payload dict

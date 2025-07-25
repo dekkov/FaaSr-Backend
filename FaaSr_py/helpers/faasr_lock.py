@@ -1,8 +1,12 @@
 import random
 import time
+import logging
 import sys
 
 from FaaSr_py.helpers.s3_helper_functions import get_default_log_boto3_client, get_logging_server
+
+
+logger = logging.getLogger(__name__)
 
 
 def faasr_rsm(faasr_payload):

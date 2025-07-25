@@ -1,9 +1,11 @@
 import uvicorn
 import sys
 import requests
+import logging
+
 from pydantic import BaseModel
 from fastapi import FastAPI
-
+from FaaSr_py.helpers.rank import faasr_rank
 from FaaSr_py.s3_api import (
     faasr_log,
     faasr_put_file,
@@ -14,6 +16,8 @@ from FaaSr_py.s3_api import (
 )
 
 
+faasr_api = FastAPI()
+logger = logging.getLogger(__name__)
 valid_functions = {
     "faasr_get_file",
     "faasr_put_file",
@@ -21,7 +25,6 @@ valid_functions = {
     "faasr_get_folder_list",
     "faasr_log",
 }
-faasr_api = FastAPI()
 
 
 class Request(BaseModel):
@@ -50,7 +53,6 @@ class Exit(BaseModel):
     Message: str | None = None
 
 
-# registers request and return handlers with a faasr_instance
 def register_request_handler(faasr_instance):
     """"
     Setup FastAPI request handlers for FaaSr functions
@@ -91,9 +93,11 @@ def register_request_handler(faasr_instance):
                         config=faasr_instance, **args
                     )
                 case "faasr_rank":
-                    print("to-do: faasr_rank")
+                    return_obj.Data["rank"] = faasr_rank()
                 case "faasr_get_s3_creds":
-                    print("to-do: faasr_get_s3_creds")
+                    return_obj.Data["s3_creds"] = faasr_get_s3_creds(
+                        config=faasr_instance, **args
+                    )
         except Exception as e:
             err_msg = f"{{faasr_server: ERROR -- failed to invoke {request.ProcedureID} -- {e}}}"
             faasr_log(config=faasr_instance, log_message=err_msg)
@@ -134,10 +138,9 @@ def faasr_echo(message: str):
     return {"message": message}
 
 
-# poll server until it's ready
 def wait_for_server_start(port):
     """
-    Polls the server until it is ready to accept requests
+    Polls the server until it's ready to accept requests
     Arguments:
         port: int -- port the server is running on
     """

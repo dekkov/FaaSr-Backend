@@ -1,5 +1,10 @@
 import sys
+import logging
+
 from collections import namedtuple
+
+
+logger = logging.getLogger(__name__)
 
 
 def faasr_get_s3_creds(config, server_name="", faasr_prefix=""):

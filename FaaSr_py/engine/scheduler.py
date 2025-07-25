@@ -3,11 +3,15 @@ import re
 import copy
 import json
 import sys
+import logging
 import boto3
 
 from FaaSr_py.engine.faasr_payload import FaaSr
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.s3_api import faasr_log
+
+
+logger = logging.getLogger(__name__)
 
 
 class Scheduler:
@@ -129,41 +133,14 @@ class Scheduler:
         # Create copy of faasr payload
         faasr_git = copy.deepcopy(self.faasr.get_complete_workflow())
 
-        # Hide credentials for compute servers before sending
-        for faas_js in faasr_git["ComputeServers"]:
-            match faasr_git["ComputeServers"][faas_js]["FaaSType"]:
-                case "GitHubActions":
-                    faasr_git["ComputeServers"][faas_js]["Token"] = f"{faas_js}_TOKEN"
-                    break
-                case "Lambda":
-                    faasr_git["ComputeServers"][faas_js][
-                        "AccessKey"
-                    ] = f"{faas_js}_ACCESS_KEY"
-                    faasr_git["ComputeServers"][faas_js][
-                        "SecretKey"
-                    ] = f"{faas_js}_SECRET_KEY"
-                    break
-                case "OpenWhisk":
-                    faasr_git["ComputeServers"][faas_js][
-                        "API.key"
-                    ] = f"{faas_js}_API_KEY"
-                    break
-
-        # Hide credentials for data stores before sending
-        for data_js in faasr_git["DataStores"]:
-            faasr_git["DataStores"][data_js]["AccessKey"] = f"{data_js}_ACCESS_KEY"
-            faasr_git["DataStores"][data_js]["SecretKey"] = f"{data_js}_SECRET_KEY"
-
         # Create payload input
         overwritten_files = self.faasr.get_overwritten_fields()
         json_overwritten = json.dumps(overwritten_files)
+        # to-do: if UseSecretStore of next function == True, then send secrets -- secrets = self.faasr.get_secrets()
         inputs = {
             "OVERWRITTEN": json_overwritten,
             "PAYLOAD_URL": self.faasr.url,
         }
-
-        # Delete copy of faar payload
-        del faasr_git
 
         # Create url for GitHub API
         url = f"https://api.github.com/repos/{repo}/actions/workflows/{workflow_file}/dispatches"
@@ -233,7 +210,9 @@ class Scheduler:
             region_name=next_compute_server["Region"],
         )
 
-        # Invoke lambda function
+        # Invoke lambda function 
+        # to-do: lambda function should take URL of payload & overwritten fields (not payload itself)
+        # as input, and secrets if "UseSecretStore" is False for next_compute_server
         try:
             response = lambda_client.invoke(
                 FunctionName=function,
@@ -296,6 +275,8 @@ class Scheduler:
         # Create headers for POST
         headers = {"accept": "application/json", "Content-Type": "application/json"}
 
+        # to-do: invoke should take URL of payload & overwritten fields (not payload itself)
+        # as input, and secrets if "UseSecretStore" is False for next_compute_server
         payload_dict = self.faasr.get_complete_workflow()
         # Create body for POST
         json_payload = json.dumps(payload_dict)

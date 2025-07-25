@@ -2,6 +2,7 @@ import os
 import sys
 import uuid
 import boto3
+import logging
 import random
 import json
 
@@ -10,6 +11,9 @@ from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.helpers.faasr_lock import faasr_acquire, faasr_release
 from FaaSr_py.helpers.graph_functions import check_dag, validate_json
 from FaaSr_py.helpers.s3_helper_functions import validate_uuid, get_default_log_boto3_client, get_logging_server
+
+
+logger = logging.getLogger(__name__)
 
 
 class FaaSr:
@@ -70,6 +74,9 @@ class FaaSr:
     def faasr_replace_values(self, secrets):
         """
         Replaces filler secrets in a payload with real credentials (writes result to overwritten data)
+
+        Arguments:
+            secrets: dict -- dictionary of secrets to replace in the payload
         """
         def recursive_replace(payload):
             for name in payload:

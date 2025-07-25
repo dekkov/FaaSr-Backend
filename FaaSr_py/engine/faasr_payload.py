@@ -184,27 +184,30 @@ class FaaSr:
         s3_log_info = self["DataStores"][target_s3]
 
         # Get boto3 client for default data store (to-do: make general)
-        s3_client = get_default_log_client(self)
+        s3_client = get_default_log_boto3_client(self)
 
         # ID folder is of the form {faasr log}/{InvocationID}
         id_folder = f"{self['FaaSrLog']}/{self['InvocationID']}"
 
         # If a predecessor has a rank attribute, then we need to ensure
         # That all concurrent invocations of that function have finished
+        full_predecessor_list = (
+            [func for func in pre if "Rank" not in self["FunctionList"][func]]
+        )
         for pre_func in pre:
             if (
                 "Rank" in self["FunctionList"][pre_func]
                 and self["FunctionList"][pre_func]["Rank"]
             ):
                 parts = self["FunctionList"][pre_func]["Rank"].split("/")
-                pre.remove(pre_func)
                 # Rank field should have the form number/number
                 if len(parts) != 2:
                     err_msg = f'{{"faasr_abort_on_multiple_invocation": "Error with rank field in function: {pre_func}"}}'
                     print(err_msg)
                     sys.exit(1)
                 for rank in range(1, int(parts[1]) + 1):
-                    pre.append(f"{pre_func}.{rank}")
+                    full_predecessor_list.append(f"{pre_func}.{rank}")
+        print(full_predecessor_list)
 
         # First, we check if all of the other predecessor actions are done
         # To do this, we check a file called func.done in S3, and see if all of the other actions have
@@ -220,7 +223,7 @@ class FaaSr:
             if "Key" in object:
                 s3_object_keys.append(object["Key"])
 
-        for func in pre:
+        for func in full_predecessor_list:
             # check if all of the predecessor func.done objects exist
             done_file = f"{id_folder}/{func}.done"
 

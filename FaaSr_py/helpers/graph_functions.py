@@ -1,6 +1,7 @@
 import json
 import sys
 import re
+from pathlib import Path
 from collections import defaultdict
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
@@ -16,8 +17,14 @@ def validate_json(payload):
     if isinstance(payload, str):
         payload = json.loads(payload)
 
+    schema_path = Path(__file__).parent.parent / "FaaSr.schema.json"
+    if not schema_path.exists():
+        err_msg = f'{{"faasr_validate_json":"FaaSr schema file not found at {schema_path}"}}\n'
+        print(err_msg)
+        sys.exit(1)
+
     # Open FaaSr schema
-    with open("FaaSr.schema.json", "r") as f:
+    with open(schema_path, "r") as f:
         schema = json.load(f)
 
     # Compare payload against FaaSr schema and except if they do not match
@@ -51,9 +58,14 @@ def is_cyclic(adj_graph, curr, visited, stack):
     if curr in stack:
         return True
 
+    curr_rank = curr.split(".")
+    if len(curr_rank) > 1:
+        # if the current node has a rank, then remove the rank
+        curr = curr_rank[0]
+
     # add current node to recursion call stack and visited set
-    visited.add(curr)
-    stack.append(curr)
+    visited.add(curr)  # remove rank from function name
+    stack.append(curr)  # remove rank from function name
 
     # check each successor for cycles, recursively calling is_cyclic()
     for child in adj_graph[curr]:
@@ -95,9 +107,9 @@ def build_adjacency_graph(payload):
         for child in invoke_next:
             if isinstance(child, dict):
                 for conditional in child.values():
-                    adj_graph[func].extend(remove_rank_from_list(conditional))
+                    adj_graph[func].extend(all_funcs_from_list(conditional))
             else:
-                adj_graph[func].append(remove_rank(child))
+                adj_graph[func].extend(all_funcs_from_rank(child))
     return adj_graph
 
 
@@ -147,7 +159,7 @@ def check_dag(payload):
     # Check if all of the functions have been visited by the DFS
     # If not, then there is an unreachable state in the graph
     for func in payload["FunctionList"]:
-        if func.split("(")[0] not in visited:
+        if func.split(".")[0] not in visited:
             err = '{"check_workflow_cycle":"unreachable state found: ' + func + '"}\n'
             print(err)
             sys.exit(1)
@@ -188,25 +200,32 @@ def validate_payload(faasr):
         faasr.abort_on_multiple_invocations(pre)
 
 
-def remove_rank(str):
+def all_funcs_from_rank(str):
     """
-    Removes the rank from the function name
+    This function returns a list of all the actual actions called
+    by a function with a rank (e.g. "func(3)" returns ["func.1", "func.2", "func.3"])
 
     Arguments:
         str: function name with rank
     Returns:
         str: function name without rank
     """
-    return re.sub(r"\(\d+\)$", "", str)
+    parts = str.split("(")
+    if len(parts) != 2 or not parts[1].endswith(")"):
+        return [str]
+    rank = int(parts[1][:-1])
+    return [f"{parts[0]}.{i}" for i in range(1, rank + 1)]
 
 
-def remove_rank_from_list(func_list):
+def all_funcs_from_list(func_list):
     """
-    Removes the rank from a list of function names
+    This function returns a list of all the actual actions called
+    by a list of functions with ranks (e.g. ["func(3)", "func2(2)"]
+    returns ["func.1", "func.2", "func.3", "func2.1", "func2.2"])
 
     Arguments:
         func_list: list of function names with rank
     Returns:
         func_list: list of function names without rank
     """
-    return [remove_rank(func) for func in func_list]
+    return [func_name for func in func_list for func_name in all_funcs_from_rank(func)]

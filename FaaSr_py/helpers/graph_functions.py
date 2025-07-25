@@ -28,6 +28,7 @@ def validate_json(payload):
             f'{{"faasr_validate_json":"JSON not compliant with FaaSr schema : {e.message}"}}\n',
         )
         print(err_msg)
+        sys.exit(1)
     return True
 
 
@@ -75,6 +76,31 @@ def is_cyclic(adj_graph, curr, visited, stack):
     return False
 
 
+def build_adjacency_graph(payload):
+    """
+    This function builds an adjacency list for the FaaSr workflow graph
+
+    Arguments:
+        payload: FaaSr payload dict
+    Returns:
+        adj_graph: adjacency list for graph -- dict(function: successor)
+    """
+    adj_graph = defaultdict(list)
+
+    # Build adjacency list from FunctionList
+    for func in payload["FunctionList"].keys():
+        invoke_next = payload["FunctionList"][func]["InvokeNext"]
+        if isinstance(invoke_next, str):
+            invoke_next = [invoke_next]
+        for child in invoke_next:
+            if isinstance(child, dict):
+                for conditional in child.values():
+                    adj_graph[func].extend(remove_rank_from_list(conditional))
+            else:
+                adj_graph[func].append(remove_rank(child))
+    return adj_graph
+
+
 def check_dag(payload):
     """
     This method checks for cycles, repeated function names, or unreachable nodes in the workflow
@@ -85,22 +111,7 @@ def check_dag(payload):
     Returns:
         predecessors: dict -- map of function predecessors
     """
-
-    adj_graph = defaultdict(list)
-
-    # Build the adjacency list
-    for func in payload["FunctionList"].keys():
-        invoke_next = payload["FunctionList"][func]["InvokeNext"]
-        if isinstance(invoke_next, str):
-            invoke_next = [invoke_next]
-        for child in invoke_next:
-            if isinstance(child, dict):
-                for conditional in child.values():
-                    child = re.sub(r"\(.*", "", conditional)
-                    adj_graph[func].append(conditional)
-            else:
-                child = re.sub(r"\(.*", "", child)
-                adj_graph[func].append(child)
+    adj_graph = build_adjacency_graph(payload)
 
     # Initialize empty recursion call stack
     stack = []
@@ -156,6 +167,7 @@ def predecessors_list(adj_graph):
             pre[func2].append(func1)
     return pre
 
+
 def validate_payload(faasr):
     # Verifies that the faasr payload is a DAG, meaning that there is no cycles
     # If the payload is a DAG, then this function returns a predecessor list for the workflow
@@ -174,3 +186,27 @@ def validate_payload(faasr):
     # This function validates that the current action is the last invocation; otherwise, it aborts
     if len(pre) > 1:
         faasr.abort_on_multiple_invocations(pre)
+
+
+def remove_rank(str):
+    """
+    Removes the rank from the function name
+
+    Arguments:
+        str: function name with rank
+    Returns:
+        str: function name without rank
+    """
+    return re.sub(r"\(\d+\)$", "", str)
+
+
+def remove_rank_from_list(func_list):
+    """
+    Removes the rank from a list of function names
+
+    Arguments:
+        func_list: list of function names with rank
+    Returns:
+        func_list: list of function names without rank
+    """
+    return [remove_rank(func) for func in func_list]

@@ -84,10 +84,10 @@ class Scheduler:
 
         for rank in range(1, rank_num + 1):
             if rank_num > 1:
-                self.faasr["InvocationRank"] = rank
+                self.faasr["FunctionRank"] = rank
             else:
-                if "InvocationRank" in self.faasr:
-                    del self.faasr["InvocationRank"]
+                if "FunctionRank" in self.faasr:
+                    del self.faasr["FunctionRank"]
 
             if next_server not in self.faasr["ComputeServers"]:
                 err_msg = f"invalid server name: {next_server}"
@@ -135,8 +135,21 @@ class Scheduler:
 
         # Create payload input
         overwritten_files = self.faasr.overwritten
+
+        # If UseSecretStore == True, don't send secrets to next action
+        # Otherwise, we should send the compute servers & data stores
+        # that contain secrets via overwritten
+        if self.faasr["FunctionList"][function].get("UseSecretStore"):
+            if "ComputeServers" in overwritten_files:
+                del overwritten_files["ComputeServers"]
+            if "DataStores" in overwritten_files:
+                del overwritten_files["DataStores"]
+        else:
+            overwritten_files["ComputeServers"] = self.faasr["ComputeServers"]
+            overwritten_files["DataStores"] = self.faasr["DataStores"]
+
         json_overwritten = json.dumps(overwritten_files)
-        # to-do: if UseSecretStore of next function == True, then send secrets -- secrets = self.faasr.get_secrets()
+
         inputs = {
             "OVERWRITTEN": json_overwritten,
             "PAYLOAD_URL": self.faasr.url,

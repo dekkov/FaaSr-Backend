@@ -94,8 +94,8 @@ class Executor:
         log_folder_path = f"/tmp/{log_folder}/{self.faasr['FunctionInvoke']}/flag/"
         if not os.path.isdir(log_folder_path):
             os.makedirs(log_folder_path)
-        if "InvocationRank" in self.faasr:
-            file_name = f"{self.faasr['FunctionInvoke']}.{self.faasr["InvocationRank"]}.done"
+        if "FunctionRank" in self.faasr:
+            file_name = f"{self.faasr['FunctionInvoke']}.{self.faasr["FunctionRank"]}.done"
         else:
             file_name = f"{self.faasr['FunctionInvoke']}.done"
         with open(f"{log_folder_path}/{file_name}", "w") as f:

@@ -84,7 +84,10 @@ class Scheduler:
 
         for rank in range(1, rank_num + 1):
             if rank_num > 1:
-                self.faasr["FunctionList"][function]["Rank"] = f"{rank}/{rank_num}"
+                self.faasr["InvocationRank"] = rank
+            else:
+                if "InvocationRank" in self.faasr:
+                    del self.faasr["InvocationRank"]
 
             if next_server not in self.faasr["ComputeServers"]:
                 err_msg = f"invalid server name: {next_server}"

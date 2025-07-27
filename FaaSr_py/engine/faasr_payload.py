@@ -24,16 +24,20 @@ class FaaSrPayload():
     The class also provides methods to validate the workflow, replace secrets, and check S3 data stores.
     It can also initialize a log folder and handle multiple invocations of functions.
     """
-    def __init__(self, url: str, overwritten={}, token=None):
+    def __init__(self, url: str, overwritten=None, token=None):
         # without PAT, larger workflows run the risk
         # of hitting rate limits hen fetching payload
         if token is None:
             token = os.getenv("TOKEN")
 
+        if overwritten is None:
+            self._overwritten = None
+        else:
+            self._overwritten = overwritten
+
         # fetch payload from gh
         raw_payload = faasr_get_github_raw(token=token, path=url)
         self._base_workflow = json.loads(raw_payload)
-        self._overwritten = overwritten
 
         # validate payload against schema
         if global_config.SKIP_SCHEMA_VALIDATE:
@@ -57,6 +61,18 @@ class FaaSrPayload():
 
     def __setitem__(self, key: str, value):
         self._overwritten[key] = value
+
+    def __delitem__(self, key):
+        present = False
+        if key in self._overwritten:
+            del self._overwritten[key]
+            present = True
+        if key in self._base_workflow:
+            del self._base_workflow[key]
+            present = True
+            return
+        if not present:
+            raise KeyError(f"{key} not found in FaaSrPayload")
 
     def __contains__(self, item):
         return item in self._base_workflow or item in self._overwritten
@@ -203,24 +219,6 @@ class FaaSrPayload():
         # ID folder is of the form {faasr log}/{InvocationID}
         id_folder = f"{self['FaaSrLog']}/{self['InvocationID']}"
 
-        # If a predecessor has a rank attribute, then we need to ensure
-        # That all concurrent invocations of that function have finished
-        full_predecessor_list = (
-            [func for func in pre if "Rank" not in self["FunctionList"][func]]
-        )
-        for pre_func in pre:
-            if (
-                "Rank" in self["FunctionList"][pre_func]
-                and self["FunctionList"][pre_func]["Rank"]
-            ):
-                parts = self["FunctionList"][pre_func]["Rank"].split("/")
-                # Rank field should have the form number/number
-                if len(parts) != 2:
-                    err_msg = f"Error with rank field in function: {pre_func}"
-                    logger.error(err_msg)
-                    sys.exit(1)
-                for rank in range(1, int(parts[1]) + 1):
-                    full_predecessor_list.append(f"{pre_func}.{rank}")
 
         # First, we check if all of the other predecessor actions are done
         # To do this, we check a file called func.done in S3, and see if all of the other actions have
@@ -236,7 +234,7 @@ class FaaSrPayload():
             if "Key" in object:
                 s3_object_keys.append(object["Key"])
 
-        for func in full_predecessor_list:
+        for func in pre:
             # check if all of the predecessor func.done objects exist
             done_file = f"{id_folder}/{func}.done"
 

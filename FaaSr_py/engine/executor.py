@@ -94,12 +94,10 @@ class Executor:
         log_folder_path = f"/tmp/{log_folder}/{self.faasr['FunctionInvoke']}/flag/"
         if not os.path.isdir(log_folder_path):
             os.makedirs(log_folder_path)
-        if "Rank" in self.faasr["FunctionList"][action_name]:
-            rank_unsplit = self.faasr["FunctionList"][action_name]["Rank"]
-            if len(rank_unsplit) != 0:
-                rank = rank_unsplit.split("/")[0]
-                self.faasr["FunctionInvoke"] = f"{self.faasr['FunctionInvoke']}.{rank}"
-        file_name = f"{self.faasr['FunctionInvoke']}.done"
+        if "InvocationRank" in self.faasr:
+            file_name = f"{self.faasr['FunctionInvoke']}.{self.faasr["InvocationRank"]}.done"
+        else:
+            file_name = f"{self.faasr['FunctionInvoke']}.done"
         with open(f"{log_folder_path}/{file_name}", "w") as f:
             f.write("True")
 

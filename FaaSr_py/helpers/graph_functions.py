@@ -59,11 +59,6 @@ def is_cyclic(adj_graph, curr, visited, stack):
     if curr in stack:
         return True
 
-    curr_rank = curr.split(".")
-    if len(curr_rank) > 1:
-        # if the current node has a rank, then remove the rank
-        curr = curr_rank[0]
-
     # add current node to recursion call stack and visited set
     visited.add(curr)  # remove rank from function name
     stack.append(curr)  # remove rank from function name
@@ -85,14 +80,18 @@ def is_cyclic(adj_graph, curr, visited, stack):
 
 def build_adjacency_graph(payload):
     """
-    This function builds an adjacency list for the FaaSr workflow graph
+    This function builds an adjacency list for the FaaSr workflow graph and records
+    the ranks of each action
 
     Arguments:
         payload: FaaSr payload dict
     Returns:
-        adj_graph: adjacency list for graph -- dict(function: successor)
+        adj_graph: dict of predecessor: succesor pairs
+        rank: dict of each action's rank
     """
     adj_graph = defaultdict(list)
+
+    ranks = dict()
 
     # Build adjacency list from FunctionList
     for func in payload["FunctionList"].keys():
@@ -101,11 +100,16 @@ def build_adjacency_graph(payload):
             invoke_next = [invoke_next]
         for child in invoke_next:
             if isinstance(child, dict):
-                for conditional in child.values():
-                    adj_graph[func].extend(all_funcs_from_list(conditional))
+                for conditional_branch in child.values():
+                    for action in conditional_branch:
+                        action_name, action_rank = extract_rank(action) 
+                        adj_graph[func].append(action_name)
+                        ranks[action_name] = action_rank
             else:
-                adj_graph[func].extend(all_funcs_from_rank(child))
-    return adj_graph
+                action_name, action_rank = extract_rank(child) 
+                adj_graph[func].append(action_name)
+                ranks[action_name] = action_rank
+    return (adj_graph, ranks)
 
 
 def check_dag(faasr_payload):
@@ -118,7 +122,7 @@ def check_dag(faasr_payload):
     Returns:
         predecessors: dict -- map of function predecessors
     """
-    adj_graph = build_adjacency_graph(faasr_payload)
+    adj_graph, ranks = build_adjacency_graph(faasr_payload)
 
     # Initialize empty recursion call stack
     stack = []
@@ -127,7 +131,7 @@ def check_dag(faasr_payload):
     visited = set()
 
     # Initialize predecessor list
-    pre = predecessors_list(adj_graph)
+    pre = predecessors_list(adj_graph, ranks)
 
     # Find initial function in the graph
     start = False
@@ -157,7 +161,7 @@ def check_dag(faasr_payload):
     return pre[faasr_payload["FunctionInvoke"]]
 
 
-def predecessors_list(adj_graph):
+def predecessors_list(adj_graph, ranks):
     """This function returns a map of action predecessor pairs
 
     Arguments:
@@ -166,36 +170,28 @@ def predecessors_list(adj_graph):
     pre = defaultdict(list)
     for func1 in adj_graph:
         for func2 in adj_graph[func1]:
-            pre[func2].append(func1)
+            if ranks.get(func1) and ranks.get(func1) > 1:
+                for i in range(1, ranks[func1] + 1):
+                    pre[func2].append(f"{func1}.{i}")
+            else:
+                pre[func2].append(func1)
     return pre
 
 
-def all_funcs_from_rank(str):
+def extract_rank(str):
     """
-    This function returns a list of all the actual actions called
-    by a function with a rank (e.g. "func(3)" returns ["func.1", "func.2", "func.3"])
+    Returns action name and rank of an action with rank (e.g func(7) returns (func, 7))
 
     Arguments:
         str: function name with rank
     Returns:
-        str: function name without rank
+        (str, int) -- action name and rank
     """
     parts = str.split("(")
     if len(parts) != 2 or not parts[1].endswith(")"):
-        return [str]
+        return str, 1
     rank = int(parts[1][:-1])
-    return [f"{parts[0]}.{i}" for i in range(1, rank + 1)]
+    action_name = parts[0]
+    return (action_name, rank)
 
 
-def all_funcs_from_list(func_list):
-    """
-    This function returns a list of all the actual actions called
-    by a list of functions with ranks (e.g. ["func(3)", "func2(2)"]
-    returns ["func.1", "func.2", "func.3", "func2.1", "func2.2"])
-
-    Arguments:
-        func_list: list of function names with rank
-    Returns:
-        func_list: list of function names without rank
-    """
-    return [func_name for func in func_list for func_name in all_funcs_from_rank(func)]

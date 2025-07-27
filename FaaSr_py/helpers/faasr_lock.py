@@ -44,7 +44,7 @@ def faasr_rsm(faasr_payload):
             sys.exit(1)
 
         # If someone has a flag, then delete flag and try again
-        if anyone_else_interested(s3_client, flag_path, flag_name):
+        if anyone_else_interested(s3_client, target_s3, flag_path, flag_name):
             s3_client.delete_object(Bucket=target_s3["Bucket"], Key=flag_name)
             if cnt > max_cnt:
                 time.sleep(2**max_cnt)
@@ -128,7 +128,7 @@ def faasr_release(faasr_payload):
     s3_client.delete_object(Bucket=target_s3["Bucket"], Key=lock_name)
 
 
-def anyone_else_interested(boto3_client, flag_path, flag_name):
+def anyone_else_interested(boto3_client, target_s3, flag_path, flag_name):
     """
     Check flags to see whether or not other
     functions are trying to acquire the lock
@@ -143,7 +143,7 @@ def anyone_else_interested(boto3_client, flag_path, flag_name):
     """
 
     # Get a list of flag names
-    check_pool = boto3_client.list_objects_v2(Bucket=boto3_client["Bucket"], Prefix=flag_path)
+    check_pool = boto3_client.list_objects_v2(Bucket=target_s3["Bucket"], Prefix=flag_path)
 
     pool = [x["Key"] for x in check_pool["Contents"]]
     # If our flag is in S3 and is the only one, return false

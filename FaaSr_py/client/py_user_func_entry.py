@@ -23,7 +23,7 @@ def run_py_function(faasr, func_name, args, imports):
             raise RuntimeError("failed to get local function") from e
     else:
         user_function = faasr_import_function_walk(
-            func_name, dir=f"/tmp/functions{faasr['InvocationID']}"
+            func_name, directory=f"/tmp/functions{faasr['InvocationID']}"
         )
 
     # Ensure user function is present

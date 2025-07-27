@@ -13,9 +13,9 @@ faasr_log <- function(log_message) {
     if (!is.null(response_content$Success) && response_content$Success) {
         return (response_content$Success)
     } else {
-        err_msg <- paste0('{\"faasr_log\": \"Request to FaaSr RPC failed\"}')
-        message(err_msg)
-        faasr_exit(error=TRUE)
+        err_msg <- "Request to FaaSr RPC failed"
+        faasr_exit(error=TRUE, message=err_msg)
+        quit(status = 1, save = "no")
     }
 }
 
@@ -36,9 +36,9 @@ faasr_put_file <- function(local_file, remote_file, server_name="", local_folder
     if (!is.null(response_content$Success) && response_content$Success) {
         return (response_content$Success)
     } else {
-        err_msg <- paste0('{\"faasr_put_file\": \"Request to FaaSr RPC failed\"}')
-        message(err_msg)
-        faasr_exit(error=TRUE)
+        err_msg <- "Request to FaaSr RPC failed"
+        faasr_exit(error=TRUE, message=err_msg)
+        quit(status = 1, save = "no")
     }
 }
     
@@ -59,9 +59,9 @@ faasr_get_file <- function(local_file, remote_file, server_name="", local_folder
     if (!is.null(response_content$Success) && response_content$Success) {
         return (response_content$Success)
     } else {
-        err_msg <- paste0('{\"faasr_get_file\": \"Request to FaaSr RPC failed\"}')
-        message(err_msg)
-        faasr_exit(error=TRUE)
+        err_msg <- "Request to FaaSr RPC failed"
+        faasr_exit(error=TRUE, message=err_msg)
+        quit(status = 1, save = "no")
     }
 }
 
@@ -79,9 +79,9 @@ faasr_delete_file <- function(remote_file, server_name="", remote_folder="") {
     if (!is.null(response_content$Success) && response_content$Success) {
         return (response_content$Success)
     } else {
-        err_msg <- paste0('{\"faasr_delete_file\": \"Request to FaaSr RPC failed\"}')
-        message(err_msg)
-        faasr_exit(error=TRUE)
+        err_msg <- "Request to FaaSr RPC failed"
+        faasr_exit(error=TRUE, message=err_msg)
+        quit(status = 1, save = "no")
     }
 }
 
@@ -99,9 +99,9 @@ faasr_get_folder_list <- function(server_name="", prefix = "") {
     if (!is.null(response_content$Success) && response_content$Success) {
         return (response_content$Data$folder_list)
     } else {
-        err_msg <- paste0('{\"faasr_get_folder_list\": \"failed to get folder list\"}')
-        message(err_msg)
-        faasr_exit(error=TRUE)
+        err_msg <- "Failed to get folder list"
+        faasr_exit(error=TRUE, message=err_msg)
+        quit(status = 1, save = "no")
     }
 }
 
@@ -115,9 +115,9 @@ faasr_rank <- function(rank_value=NULL) {
     if (!is.null(response_content$Success) && response_content$Success) {
         return (response_content$Success)
     } else {
-        err_msg <- paste0('{\"faasr_rank\": \"Request to FaaSr RPC failed\"}')
-        message(err_msg)
-        faasr_exit(error=TRUE)
+        err_msg <- "Request to FaaSr RPC failed"
+        faasr_exit(error=TRUE, message=err_msg)
+        quit(status = 1, save = "no")
     }
 }
 
@@ -130,16 +130,16 @@ faasr_return <- function(return_value=NULL) {
     if (!is.null(r$status_code) && r$status_code == 200) {
         response_content <- content(r)
         if (!is.null(response_content$Success) && response_content$Success) {
-            quit(0)
+            quit(status = 0, save = "no")
         } else {
-            err_msg <- paste0('{\"faasr_return\": \"Request to FaaSr RPC failed\"}')
+            err_msg <- "Request to FaaSr RPC failed"
             message(err_msg)
             faasr_exit(error=TRUE)
         }
     } else {
-        err_msg <- paste0('{\"faasr_return\": \"HTTP request failed with status code: ', r$status_code, '\"}')
-        message(err_msg)
-        faasr_exit(error=TRUE)
+        err_msg <- paste0("HTTP request failed with status code: ", r$status_code)
+        faasr_exit(error=TRUE, message=err_msg)
+        quit(status = 1, save = "no")
     }
 }
 
@@ -152,9 +152,10 @@ faasr_exit <- function(message=NULL, error=TRUE) {
     r <- POST("http://127.0.0.1:8000/faasr-exit", body=exit_json, encode="json")
     response_content <- content(r)
     if (!is.null(response_content$Success) && response_content$Success) {
-        quit(0)
+        quit(status = 0, save = "no")
     } else {
-        err_msg <- paste0('{\"faasr_exit\": \"Request to FaaSr RPC failed\"}')
+        err_msg <- "Request to FaaSr RPC failed"
         message(err_msg)
-        quit(1)
+        quit(status = 1, save = "no")
+    }
 }

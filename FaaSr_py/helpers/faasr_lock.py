@@ -26,7 +26,8 @@ def faasr_rsm(faasr_payload):
     lock_name = f"{faasr_payload['FaaSrLog']}/{faasr_payload['InvocationID']}/{faasr_payload['FunctionInvoke']}./lock"
 
     # set s3 client
-    target_s3 = get_logging_server(faasr_payload)
+    logging_datastore = get_logging_server(faasr_payload)
+    target_s3 = faasr_payload["DataStores"][logging_datastore]
     s3_client = get_default_log_boto3_client(faasr_payload)
 
     cnt = 0
@@ -119,7 +120,8 @@ def faasr_release(faasr_payload):
     lock_name = f"{faasr_payload['FaaSrLog']}/{faasr_payload['InvocationID']}/{faasr_payload['FunctionInvoke']}./lock"
 
     # Get the faasr logging server from payload
-    target_s3 = get_logging_server(faasr_payload)
+    logging_datastore = get_logging_server(faasr_payload)
+    target_s3 = faasr_payload["DataStores"][logging_datastore]
     s3_client = get_default_log_boto3_client(faasr_payload)
 
     # Delete the lock from S3

@@ -131,7 +131,7 @@ class Scheduler:
         faasr_git = copy.deepcopy(self.faasr.get_complete_workflow())
 
         # Create payload input
-        overwritten_files = self.faasr.get_overwritten_fields()
+        overwritten_files = self.faasr.overwritten
         json_overwritten = json.dumps(overwritten_files)
         # to-do: if UseSecretStore of next function == True, then send secrets -- secrets = self.faasr.get_secrets()
         inputs = {

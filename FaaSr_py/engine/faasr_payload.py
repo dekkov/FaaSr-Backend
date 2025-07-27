@@ -63,6 +63,14 @@ class FaaSrPayload():
 
     def __it__(self):
         return iter(self.get_complete_workflow().items())
+    
+    @property
+    def overwritten(self):
+        return self._overwritten
+    
+    @property 
+    def base_workflow(self):
+        return self._base_workflow
 
     def get_complete_workflow(self):
         temp_dict = self._base_workflow.copy()

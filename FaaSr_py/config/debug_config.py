@@ -4,6 +4,8 @@ import logging
 import importlib
 from pathlib import Path
 
+from FaaSr_py.config.s3_log_handler import S3LogHandler
+from FaaSr_py.config.logger_classes import FaaSrFilter
 
 logger = logging.getLogger(__name__)
 
@@ -12,17 +14,17 @@ class Config:
     """
     Stores FaaSr settings
     """
-    _config_file = None
-    
+    _config = None
     def __init__(self, config_path):
-        if Config._config_file is None:
-            Config._config_file = config_path
+        if Config._config is None:
+            self._config_file = config_path
 
             # immutable state -- used to restore config
             # to what it was at the start of the function
             self._SKIP_SCHEMA_VALIDATE = self.SKIP_SCHEMA_VALIDATE
             self._SKIP_WF_VALIDATE = self.SKIP_WF_VALIDATE
             self._SKIP_REAL_TRIGGERS = self.SKIP_REAL_TRIGGERS
+            self._READABLE_LOGS = self.READABLE_LOGS
             self._SKIP_USER_FUNCTION = self.SKIP_USER_FUNCTION
             self._USE_LOCAL_USER_FUNC = self.USE_LOCAL_USER_FUNC
             self._LOCAL_FUNCTION_PATH = self.LOCAL_FUNCTION_PATH
@@ -31,16 +33,15 @@ class Config:
             self._USE_LOCAL_FILE_SYSTEM = self.USE_LOCAL_FILE_SYSTEM
             self._LOCAL_FILE_SYSTEM_DIR = self.LOCAL_FILE_SYSTEM_DIR
 
-            # initialize log
-            Config._log_buffer = []
+            Config._config = self
         else:
             raise RuntimeError("cannot initialize Config outside of debug_config.py")
-
+        
     def _read_config(self, key):
         """
         Read config entry from config file
         """
-        with open(Config._config_file, "r") as f:
+        with open(self._config_file, "r") as f:
             config = json.load(f)
         return config[key]
 
@@ -48,7 +49,7 @@ class Config:
         """
         Write to config file
         """
-        with open(Config._config_file, "r+") as f:
+        with open(self._config_file, "r+") as f:
             config = json.load(f)
             config[key] = value
             f.seek(0)
@@ -69,10 +70,27 @@ class Config:
         self.USE_LOCAL_FILE_SYSTEM = self.__dict__["_USE_LOCAL_FILE_SYSTEM"]
         self.LOCAL_FILE_SYSTEM_DIR = self.__dict__["_LOCAL_FILE_SYSTEM_DIR"]
 
+    def add_s3_log_handler(self, faasr_payload):
+        """
+        Start s3 logger
+        """
+        if not faasr_payload:
+            raise RuntimeError("S3 logger cannot be started if faasr_payload is not set")
+        logger = logging.getLogger()
+
+        # Initialize S3 log handler
+        s3_log_handler = S3LogHandler(faasr_payload=faasr_payload, level=logging.DEBUG)
+
+        # Filter out 3rd party packages
+        s3_log_handler.addFilter(FaaSrFilter())
+
+        # Add handler
+        logger.addHandler(s3_log_handler)
+    
     """
     Getter and setter methods do not update internal member variables.
     Rather, they read to and write to the config.json file specified
-    by Config._config_file, ensuring that state remains coherent
+    by config_file, ensuring that state remains coherent
     between processes using the config
     """
     @property
@@ -104,6 +122,16 @@ class Config:
         if not isinstance(value, bool):
             raise TypeError("SKIP_REAL_TRIGGERS must be a boolean")
         self._write_config("SKIP_REAL_TRIGGERS", value)
+
+    @property
+    def READABLE_LOGS(self):
+        return self._read_config("READABLE_LOGS")
+
+    @READABLE_LOGS.setter
+    def READABLE_LOGS(self, value):
+        if not isinstance(self, bool):
+            raise TypeError("READABLE_LOGS must be a boolean")
+        self._write_config("READABLE_LOGS", value)
 
     @property
     def SKIP_USER_FUNCTION(self):

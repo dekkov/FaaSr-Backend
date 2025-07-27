@@ -1,7 +1,7 @@
 from collections import namedtuple
 
 
-def faasr_rank(config):
+def faasr_rank(faasr_payload):
     """
     Returns the rank # and total rank of the current function
 
@@ -9,10 +9,10 @@ def faasr_rank(config):
         namedtuple with elements MaxRank and Rank | None if rank is not set
     """
     # get current function name
-    curr_func_name = config["FunctionInvoke"]
+    curr_func_name = faasr_payload["FunctionInvoke"]
 
     # get current function
-    curr_func = config["FunctionList"][curr_func_name]
+    curr_func = faasr_payload["FunctionList"][curr_func_name]
 
     # define namedtuple for return type
     Rank = namedtuple("Rank", ["MaxRank", "Rank"])

@@ -14,14 +14,13 @@ def run_py_function(faasr, func_name, args, imports):
     Sources python function from file and runs it
     """
     if global_config.USE_LOCAL_USER_FUNC:
-        print("CONFIG ----- USING LOCAL FUNCTION")
         try:
             func_path = Path(global_config.LOCAL_FUNCTION_PATH).resolve()
             func_name_local = global_config.LOCAL_FUNCTION_NAME
 
             user_function = faasr_import_function(func_path, func_name_local)
-        except:
-            raise RuntimeError("failed to get local function")
+        except Exception as e:
+            raise RuntimeError("failed to get local function") from e
     else:
         user_function = faasr_import_function_walk(
             func_name, dir=f"/tmp/functions{faasr['InvocationID']}"
@@ -44,7 +43,6 @@ def run_py_function(faasr, func_name, args, imports):
     user_function.__globals__["faasr_get_s3_creds"] = faasr_get_s3_creds
     user_function.__globals__["faasr_return"] = faasr_return
     user_function.__globals__["faasr_exit"] = faasr_exit
-
 
     if global_config.USE_LOCAL_USER_FUNC:
         print(f"using local function {global_config.LOCAL_FUNCTION_NAME}")

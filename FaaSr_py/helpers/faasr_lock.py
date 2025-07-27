@@ -38,8 +38,8 @@ def faasr_rsm(faasr_payload):
         try:
             s3_client.put_object(Key=flag_name, Bucket=target_s3["Bucket"])
         except Exception as e:
-            err_msg = f"{{faasr_lock.py: failed to upload flag to S3 -- MESSAGE: {e}}}"
-            print(err_msg)
+            err_msg = f"failed to upload flag to S3 -- MESSAGE: {e}"
+            logger.exception(err_msg, stack_info=True)
             sys.exit(1)
 
         # If someone has a flag, then delete flag and try again
@@ -50,8 +50,8 @@ def faasr_rsm(faasr_payload):
                 cnt += 1
                 # If faasr_rsm exceeds the max time to acquire, then it returns false
                 if cnt > max_wait:
-                    err_msg = '{"faasr_rsm":"Lock Timeout"}\n'
-                    print(err_msg)
+                    err_msg = "Lock Timeout"
+                    logger.error(err_msg)
                     sys.exit(1)
             else:
                 time.sleep(2**cnt)
@@ -68,7 +68,7 @@ def faasr_rsm(faasr_payload):
                 s3_client.delete_object(Bucket=target_s3["Bucket"], Key=flag_name)
                 return True
             else:
-                print("failed to acquire lock")
+                logger.info("FAILED TO ACQUIRE S3 LOCK")
                 return False
 
 
@@ -93,15 +93,15 @@ def faasr_acquire(faasr):
         else:
             # "Spin" until a lock is acquired or a timeout occurs
             if cnt > max_cnt:
-                print("max acquire spining")
+                logger.info("MAX SPIN WAIT PERIOD")
                 time.sleep(2**max_cnt)
                 cnt += 1
                 if cnt > max_wait:
-                    err_msg = '{"faasr_acquire":"Lock Acquire Timeout"}\n'
-                    print(err_msg)
+                    err_msg = "LOCK ACQUIRE TIMEOUT"
+                    logger.error(err_msg)
                     sys.exit(1)
             else:
-                print("acquire spinning")
+                logger.info("LOCK SPINNING")
                 time.sleep(2**cnt)
                 cnt += 1
         # Attempt to acquire lock

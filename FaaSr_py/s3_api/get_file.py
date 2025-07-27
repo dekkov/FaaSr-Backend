@@ -9,20 +9,19 @@ logger = logging.getLogger(__name__)
 
 
 def faasr_get_file(
-    config, local_file, remote_file, server_name="", local_folder=".", remote_folder="."
+    faasr_payload, local_file, remote_file, server_name="", local_folder=".", remote_folder="."
 ):
     """
     Download file from S3
     """
     if not server_name:
-        server_name = config["DefaultDataStore"]
+        server_name = faasr_payload["DefaultDataStore"]
 
-    if server_name not in config["DataStores"]:
-        err_msg = '{"faasr_get_file":"Invalid data server name: ' + server_name + '"}\n'
-        print(err_msg)
+    if server_name not in faasr_payload["DataStores"]:
+        logger.error(f"Invalid data server name: {server_name}")
         sys.exit(1)
 
-    target_s3 = config["DataStores"][server_name]
+    target_s3 = faasr_payload["DataStores"][server_name]
 
     # Removes duplicate/trailing slashes from folder and local file names
     remote_folder = re.sub(r"/+", "/", remote_folder.rstrip("/"))
@@ -59,14 +58,10 @@ def faasr_get_file(
         )
     except s3_client.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "404":
-            err_msg = (
-                f'{{faasr_get_file: S3 object not found: s3://{target_s3['Bucket']}/{get_file_s3}}}'
-                )
-            print(err_msg)
+            logger.error(f"S3 object not found: s3://{target_s3['Bucket']}/{get_file_s3}")
             sys.exit(1)
         else:
-            err_msg = f'{{faasr_get_file: ERROR -- {e}}}'
-            print(err_msg)
+            logger.error(f"Error downloading file from S3: {e}")
             sys.exit(1)
             
 

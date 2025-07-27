@@ -1,5 +1,6 @@
 import boto3
 import re  
+import sys
 import logging
 
 from pathlib import Path
@@ -9,12 +10,12 @@ from FaaSr_py.config.debug_config import global_config
 logger = logging.getLogger(__name__)
 
 
-def faasr_put_file(config, local_file, remote_file, server_name="", local_folder=".", remote_folder="."):
+def faasr_put_file(faasr_payload, local_file, remote_file, server_name="", local_folder=".", remote_folder="."):
     """
     Uploads a file to S3 bucket
 
     Arguments:
-        config: FaaSr payload dict
+        faasr_payload: FaaSr payload dict
         local_file: str -- name of local file to upload
         remote_file: str -- name of file to upload to S3
         server_name: str -- name of S3 data store to put file in
@@ -54,22 +55,21 @@ def faasr_put_file(config, local_file, remote_file, server_name="", local_folder
         path_to_put = Path(global_config.LOCAL_FILE_SYSTEM_DIR) / remote_path
         path_to_put.parent.mkdir(parents=True, exist_ok=True)
         with open(local_path, "r") as rf:
-            print(f"writing {local_file} to {remote_path} inside of local bucket")
+            logger.info(f"writing {local_file} to {remote_path} inside of local bucket")
             with open(path_to_put, "w") as wf:
                 wf.write(rf.read())
     else:
         # Get the server name from payload if it is not provided
         if server_name == "":
-            server_name = config["DefaultDataStore"]
+            server_name = faasr_payload["DefaultDataStore"]
 
         # Ensure that the server name is valid
-        if server_name not in config["DataStores"]:
-            err_msg = f'{{"faasr_put_file":"Invalid data server name: {server_name} "}}\n'
-            print(err_msg)
+        if server_name not in faasr_payload["DataStores"]:
+            logger.error(f"Invalid data server name: {server_name}")
             sys.exit(1)
 
         # Get the S3 server to put the file in
-        target_s3 = config["DataStores"][server_name]
+        target_s3 = faasr_payload["DataStores"][server_name]
 
         s3_client = boto3.client(
             "s3",

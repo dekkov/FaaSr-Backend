@@ -7,30 +7,27 @@ import sys
 logger = logging.getLogger(__name__)
 
 
-def faasr_delete_file(config, remote_file, server_name="", remote_folder=""):
+def faasr_delete_file(faasr_payload, remote_file, server_name="", remote_folder=""):
     """
     Deletes a file from S3
 
     Arguments:
-        config: FaaSr payload dict
+        faasr_payload: FaaSr payload dict
         remote_file: str -- name of file to delete
         server_name: str -- name of S3 data store to delete file from
         remote_folder: str -- folder in S3 to delete file from
     """
     # Get server name from payload if one isn't provided
     if server_name == "":
-        server_name = config["DefaultDataStore"]
+        server_name = faasr_payload["DefaultDataStore"]
 
     # Ensure that the server is a valid data store
-    if server_name not in config["DataStores"]:
-        err_msg = (
-            '{"faasr_delete_file":"Invalid data server name: ' + server_name + '"}\n'
-        )
-        print(err_msg)
+    if server_name not in faasr_payload["DataStores"]:
+        logger.error(f"Invalid data server name: {server_name}")
         sys.exit(1)
 
     # Get the S3 data store to delete file from
-    target_s3 = config["DataStores"][server_name]
+    target_s3 = faasr_payload["DataStores"][server_name]
 
     # Remove "/" in the folder & file name to avoid situations:x
     # 1: duplicated "/" ("/remote/folder/", "/file_name")

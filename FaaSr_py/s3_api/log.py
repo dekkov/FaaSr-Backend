@@ -4,33 +4,27 @@ import sys
 import logging
 
 from pathlib import Path
+from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.helpers.s3_helper_functions import get_logging_server, get_default_log_boto3_client
 
 
-def faasr_log(config, log_message, log_name=None, file_name=None):
+logger = logging.getLogger(__name__)
+
+
+def faasr_log(faasr_payload, log_message):
     """
     Logs a message
 
     Arguments:
-        config: FaaSr payload dict
+        faasr_payload: FaaSr payload dict
         log_message: str -- message to log
     """
     if not log_message:
-        err_msg = "{{faasr_log: ERROR -- log_message is empty}}"
-        print(err_msg)
+        logger.error("ERROR -- log_message is empty")
         sys.exit(1)
 
-    if not file_name:
-        file_name = config["FunctionInvoke"] + ".txt"
-
-    # Lazily import global_config to avoid circular imports
-    from FaaSr_py.config.debug_config import global_config
-
-    if not log_name:
-        log_name = config['FaaSrLog']
-    
-    log_folder = Path(log_name) / config['InvocationID']
-    log_path = Path(Path(log_folder)) / file_name
+    log_folder = Path(faasr_payload["FaaSrLog"]) / faasr_payload['InvocationID']
+    log_path = log_folder / faasr_payload.log_file
 
     if global_config.USE_LOCAL_FILE_SYSTEM:
         # make log dir
@@ -39,27 +33,23 @@ def faasr_log(config, log_message, log_name=None, file_name=None):
 
         # write log
         logs = f"{log_message}\n"
-        print(f"writing {log_message} to {local_log_path}")
+        logger.info(f"writing {log_message} to {local_log_path}")
         with open(local_log_path, "a") as f:
             f.write(logs)
     else:
         # Get the logging data store from payload
-        log_server_name = get_logging_server(config)
+        log_server_name = get_logging_server(faasr_payload)
 
-        if log_server_name not in config["DataStores"]:
-            err_msg = (
-            f'{{"faasr_log":"Invalid logging server name: {log_server_name}"}}\n'
-            )
-            print(err_msg)
+        if log_server_name not in faasr_payload["DataStores"]:
+            logger.error(f"Invalid logging server name: {log_server_name}")
             sys.exit(1)
 
-
-        s3_client = get_default_log_boto3_client(config)
+        s3_client = get_default_log_boto3_client(faasr_payload)
 
         log_download_path = Path("/tmp/", log_path)
         Path(log_download_path).parent.mkdir(parents=True, exist_ok=True)
 
-        bucket = config["DataStores"][log_server_name]["Bucket"]
+        bucket = faasr_payload["DataStores"][log_server_name]["Bucket"]
 
         # Check if the log file already exists
         check_log_file = s3_client.list_objects_v2(

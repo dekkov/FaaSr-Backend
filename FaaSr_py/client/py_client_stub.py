@@ -126,6 +126,7 @@ def faasr_get_folder_list(server_name="", prefix = ""):
         print(err_msg)
         sys.exit(1)
 
+
 def faasr_rank():
     """
     Get the rank and max rank of the current function as a namedtuple (rank, max_rank)
@@ -142,6 +143,7 @@ def faasr_rank():
         err_msg = f"{{py_client_stub: failed to get rank from server -- {e}}}"
         print(err_msg)
         sys.exit(1)
+
 
 def faasr_get_s3_creds():
     """
@@ -162,6 +164,7 @@ def faasr_get_s3_creds():
         err_msg = f"{{faasr_get_s3_creds: failed to get S3 credentials from server -- {e}}}"
         print(err_msg)
         sys.exit(1)
+
 
 def faasr_return(return_value=None):
     """
@@ -185,7 +188,6 @@ def faasr_return(return_value=None):
         err_msg = f'{{"faasr_return": "Failed to parse response from FaaSr RPC -- {e}"}}'
         print(err_msg)
         sys.exit(1)
-
 
 
 def faasr_exit (message=None, error=True):

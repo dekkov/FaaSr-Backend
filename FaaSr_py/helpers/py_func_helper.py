@@ -77,7 +77,7 @@ def faasr_import_function_walk(func_name, directory="."):
         py_files = [file for file in files if file.endswith(".py")]
         for f in py_files:
             if f not in ignore_files:
-                print(f'{{"faasr_source_py_files":"Source python file {f}"}}\n')
+                logger.info(f"Source python file {f}")
                 try:
                     rel_path = os.path.relpath(root, directory)
                     if rel_path == ".":
@@ -96,8 +96,7 @@ def faasr_import_function_walk(func_name, directory="."):
                             return obj
 
                 except Exception as e:
-                    err_msg = f'{{"faasr_source_py_files":"python file {f} has following source error: {str(e)}"}}\n'
-                    print(err_msg)
+                    logger.error(f"Python file {f} has following source error: {str(e)}")
                     sys.exit(1)
     return None
 
@@ -116,11 +115,7 @@ def source_packages(namespace, packages):
     for package in packages:
         try:
             namespace[package] = importlib.import_module(package)
-            msg = f'{{"py_func_helper.py: succesfully imported package {package}}}'
-            print(msg)
+            logger.info(f"Successfully imported package {package}")
         except ImportError as e:
-            err_msg = (
-                f'{{"py_func_helper.py: failed to import package {package} -- {e}}}'
-            )
-            print(err_msg)
+            logger.error(f"Failed to import package {package} -- {e}")
             sys.exit(1)

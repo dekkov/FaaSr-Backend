@@ -16,7 +16,7 @@ from FaaSr_py.helpers.s3_helper_functions import validate_uuid, get_default_log_
 logger = logging.getLogger(__name__)
 
 
-class FaaSr:
+class FaaSrPayload():
     """
     This class stores the workflow as a dictionary and provides methods to access and manipulate it.
     It is initialized with a URL and an optional dictionary of overwritten values.
@@ -24,52 +24,51 @@ class FaaSr:
     The class also provides methods to validate the workflow, replace secrets, and check S3 data stores.
     It can also initialize a log folder and handle multiple invocations of functions.
     """
-    def __init__(self, url: str, overwritten = {}, token=None):
+    def __init__(self, url: str, overwritten={}, token=None):
         # without PAT, larger workflows run the risk
         # of hitting rate limits hen fetching payload
         if token is None:
             token = os.getenv("TOKEN")
 
+        # fetch payload from gh
         raw_payload = faasr_get_github_raw(token=token, path=url)
-        base_workflow = json.loads(raw_payload)
+        self._base_workflow = json.loads(raw_payload)
+        self._overwritten = overwritten
 
+        # validate payload against schema
         if global_config.SKIP_SCHEMA_VALIDATE:
-            self.base_workflow = base_workflow
-            print("DEBUG MODE -- SKIPPING SCHEMA VALIDATION")
-        elif validate_json(base_workflow):
-            self.base_workflow = base_workflow
+            logger.info("SKIPPING SCHEMA VALIDATION")
+        elif validate_json(self._base_workflow):
+            pass
         else:
             raise ValueError("Payload validation error")
+
         self.url = url
-        self.overwritten = overwritten
+        self.log_file = self["FunctionInvoke"] + ".txt"
+
+        logger.debug(f"Payload initialized with URL: {self.url}")
 
     def __getitem__(self, key: str):
-        if key in self.overwritten:
-            return self.overwritten[key]
-        elif key in self.base_workflow:
-            return self.base_workflow[key]
+        if key in self._overwritten:
+            return self._overwritten[key]
+        elif key in self._base_workflow:
+            return self._base_workflow[key]
         raise KeyError(key)
 
     def __setitem__(self, key: str, value):
-        self.overwritten[key] = value
+        self._overwritten[key] = value
 
     def __contains__(self, item):
-        return item in self.base_workflow or item in self.overwritten
+        return item in self._base_workflow or item in self._overwritten
 
     def __it__(self):
         return iter(self.get_complete_workflow().items())
 
     def get_complete_workflow(self):
-        temp_dict = self.base_workflow.copy()
-        for key, val in self.overwritten.items():
+        temp_dict = self._base_workflow.copy()
+        for key, val in self._overwritten.items():
             temp_dict[key] = val
         return temp_dict
-
-    def get_base_workflow(self):
-        return self.base_workflow
-
-    def get_overwritten_fields(self):
-        return self.overwritten
 
     def faasr_replace_values(self, secrets):
         """
@@ -97,7 +96,7 @@ class FaaSr:
             "PackageImports",
         ]
 
-        recursive_replace(self.base_workflow)
+        recursive_replace(self._base_workflow)
 
     def s3_check(self):
         """
@@ -111,9 +110,9 @@ class FaaSr:
             # Ensure that endpoint is a valid http address
             if not server_endpoint.startswith("http"):
                 error_message = (
-                    f'{{"s3_check":"Invalid Data store server endpoint {server}}}\n'
+                    f"Invalid data store server endpoint {server}"
                 )
-                print(error_message)
+                logger.error(error_message)
                 sys.exit(1)
 
             # If the region is empty, then use defualt 'us-east-1'
@@ -137,10 +136,10 @@ class FaaSr:
             try:
                 s3_client.head_bucket(Bucket=self["DataStores"][server]["Bucket"])
             except Exception as e:
-                error_message = (
-                    f'{{"s3_check":"S3 server {server} failed with message: {e}}}\n'
+                err_message = (
+                    f"S3 server {server} failed with message: {e}"
                 )
-                print(error_message)
+                logger.exception(err_message, stack_info=True)
                 sys.exit(1)
 
     def init_log_folder(self):
@@ -153,8 +152,8 @@ class FaaSr:
                 ID = uuid.uuid4()
                 self["InvocationID"] = str(ID)
 
-        faasr_msg = f'{{"init_log_folder":"InvocationID for the workflow: {self["InvocationID"]}"}}\n'
-        print(faasr_msg)
+        faasr_msg = f"InvocationID for the workflow: {self["InvocationID"]}"
+        logger.info(faasr_msg)
 
         target_s3 = get_logging_server(self)
         s3_log_info = self["DataStores"][target_s3]
@@ -173,8 +172,8 @@ class FaaSr:
 
         # If there already is a log, log error and abort; otherwise, create log
         if "Content" in check_log_folder and len(check_log_folder["Content"]) != 0:
-            err = f'{{"init_log_folder":"InvocationID already exists: {self["InvocationID"]}"}}\n'
-            print(err)
+            err_msg = f"InvocationID already exists: {self["InvocationID"]}"
+            logger.error(err_msg)
             sys.exit(1)
         else:
             s3_client.put_object(Bucket=s3_log_info["Bucket"], Key=log_folder)
@@ -209,12 +208,11 @@ class FaaSr:
                 parts = self["FunctionList"][pre_func]["Rank"].split("/")
                 # Rank field should have the form number/number
                 if len(parts) != 2:
-                    err_msg = f'{{"faasr_abort_on_multiple_invocation": "Error with rank field in function: {pre_func}"}}'
-                    print(err_msg)
+                    err_msg = f"Error with rank field in function: {pre_func}"
+                    logger.error(err_msg)
                     sys.exit(1)
                 for rank in range(1, int(parts[1]) + 1):
                     full_predecessor_list.append(f"{pre_func}.{rank}")
-        print(full_predecessor_list)
 
         # First, we check if all of the other predecessor actions are done
         # To do this, we check a file called func.done in S3, and see if all of the other actions have
@@ -238,8 +236,8 @@ class FaaSr:
             # then the current function is still waiting for
             # a predecessor and must abort
             if done_file not in s3_object_keys:
-                res_msg = '{"faasr_abort_on_multiple_invocations":"not the last trigger invoked - no flag"}\n'
-                print(res_msg)
+                res_msg = 'function was not the last invoked - no flag'
+                logger.error(res_msg)
                 sys.exit(1)
 
         # This code is reached only if all predecessors are done. 
@@ -306,6 +304,30 @@ class FaaSr:
             first_line = updated_candidate_file.readline().strip()
             first_line = int(first_line)
         if random_number != first_line:
-            res_msg = '{"abort_on_multiple_invocations":"not the last trigger invoked - random number does not match"}\n'
-            print(res_msg)
+            res_msg = "not the last trigger invoked - random number in canidate does not match"
+            logger.error(res_msg)
             sys.exit(1)
+
+    def start(self):
+        # Verifies that the faasr payload is a DAG, meaning that there is no cycles
+        # If the payload is a DAG, then this function returns a predecessor list for the workflow
+        # If the payload is not a DAG, then the action aborts
+        pre = check_dag(self)
+
+        # Verfies the validity of S3 data stores, checking the server status and ensuring that the specified bucket exists
+        # If any of the S3 endpoints are invalid or any data store server are unreachable, the action aborts
+        self.s3_check()
+
+        # Initialize log if this is the first action in the workflow
+        if len(pre) == 0:
+            self.init_log_folder()
+
+        # If there are more than 1 predecessor, then only the final action invoked will sucessfully run
+        # This function validates that the current action is the last invocation; otherwise, it aborts
+        if len(pre) > 1:
+            self.abort_on_multiple_invocations(pre)
+
+        # Start S3 logger -- logs with level of DEBUG or higher (all logs) will be sent to
+        # S3. All logs above INFO will be sent to STDOUT & S3
+        global_config.add_s3_log_handler(self)
+

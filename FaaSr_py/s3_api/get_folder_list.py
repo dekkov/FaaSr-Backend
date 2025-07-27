@@ -6,12 +6,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def faasr_get_folder_list(config, server_name="", prefix=""):
+def faasr_get_folder_list(faasr_payload, server_name="", prefix=""):
     """
     Get a list of objects in the S3 bucket
 
     Arguments:
-        config: FaaSr payload dict
+        faasr_payload: FaaSr payload dict
         server_name: str -- name of S3 data store to get folder list from
         prefix: str -- prefix to filter objects in S3 bucket
     Returns:
@@ -20,18 +20,15 @@ def faasr_get_folder_list(config, server_name="", prefix=""):
 
     # Get server name from payload if one is not providedS
     if server_name == "":
-        server_name = config["DefaultDataStore"]
+        server_name = faasr_payload["DefaultDataStore"]
 
     # Ensure the server is a valid data store
-    if server_name not in config["DataStores"]:
-        err_msg = (
-            f'{{"faasr_get_folder_list":"Invalid data server name: {server_name}"}}\n'
-            )
-        print(err_msg)
+    if server_name not in faasr_payload["DataStores"]:
+        logger.error("Invalid data server name: {server_name}")
         sys.exit(1)
 
     # Get the S3 data store to get folder list from
-    target_s3 = config["DataStores"][server_name]
+    target_s3 = faasr_payload["DataStores"][server_name]
 
     s3_client = boto3.client(
         "s3",

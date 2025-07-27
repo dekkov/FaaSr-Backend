@@ -15,9 +15,8 @@ from FaaSr_py.s3_api import (
     faasr_get_s3_creds,
 )
 
-
-faasr_api = FastAPI()
 logger = logging.getLogger(__name__)
+faasr_api = FastAPI()
 valid_functions = {
     "faasr_get_file",
     "faasr_put_file",
@@ -54,12 +53,12 @@ class Exit(BaseModel):
     Message: str | None = None
 
 
-def register_request_handler(faasr_instance):
+def register_request_handler(faasr_payload):
     """"
     Setup FastAPI request handlers for FaaSr functions
 
     Arguments:
-        faasr_instance: FaaSr payload dict
+        faasr_payload: FaaSr payload dict
     """
     return_val = None
     message = None
@@ -71,37 +70,36 @@ def register_request_handler(faasr_instance):
         Handler for FaaSr function requests
         """
         nonlocal error
-        print(f'{{"Processing request": "{request.ProcedureID}"}}', flush=True)
+        print(f"Processing request: {request.ProcedureID}")
         args = request.Arguments or {}
         return_obj = Response(Success=True, Data={})
         try:
             match request.ProcedureID:
                 case "faasr_log":
-                    faasr_log(config=faasr_instance, **args)
+                    faasr_log(faasr_payload=faasr_payload, **args)
                 case "faasr_put_file":
-                    faasr_put_file(config=faasr_instance, **args)
+                    faasr_put_file(faasr_payload=faasr_payload, **args)
                 case "faasr_get_file":
-                    faasr_get_file(config=faasr_instance, **args)
+                    faasr_get_file(faasr_payload=faasr_payload, **args)
                 case "faasr_delete_file":
-                    faasr_delete_file(config=faasr_instance, **args)
+                    faasr_delete_file(faasr_payload=faasr_payload, **args)
                 case "faasr_get_folder_list":
                     return_obj.Data["folder_list"] = faasr_get_folder_list(
-                        config=faasr_instance, **args
+                        faasr_payload=faasr_payload, **args
                     )
                 case "faasr_rank":
-                    return_obj.Data["rank"] = faasr_rank(config=faasr_instance)
+                    return_obj.Data["rank"] = faasr_rank(faasr_payload=faasr_payload)
                 case "faasr_get_s3_creds":
                     return_obj.Data["s3_creds"] = faasr_get_s3_creds(
-                        config=faasr_instance, **args
+                        faasr_payload=faasr_payload, **args
                     )
                 case _:
-                    print(f"{{faasr_server.py: ERROR -- {request.ProcedureID} is not a valid FaaSr function call}}")
+                    logging.error(f"{request.ProcedureID} is not a valid FaaSr function call")
                     error = True
                     sys.exit(1)
         except Exception as e:
-            err_msg = f"{{faasr_server: ERROR -- failed to invoke {request.ProcedureID} -- {e}}}"
-            faasr_log(config=faasr_instance, log_message=err_msg)
-            print(err_msg)
+            err_msg = f"ERROR -- failed to invoke {request.ProcedureID} -- {e}"
+            logger.error(err_msg)
             error = True
             sys.exit(1)
         return return_obj
@@ -121,7 +119,6 @@ def register_request_handler(faasr_instance):
         Handler for FaaSr function exit values
         """
         nonlocal error, message
-        print(exit_obj)
         if exit_obj.Error:
             error = True
             message = exit_obj.Message
@@ -159,15 +156,15 @@ def wait_for_server_start(port):
 
 
 # starts a server listening on localhost
-def run_server(faasr_instance, port):
+def run_server(faasr_payload, port):
     """
     Starts a FastAPI server to handle FaaSr requests
     
     Arguments:
-        faasr_instance: FaaSr payload dict
+        faasr_payload: FaaSr payload dict
         port: int -- port to run the server on
     """
-    register_request_handler(faasr_instance)
+    register_request_handler(faasr_payload)
     config = uvicorn.Config(faasr_api, host="127.0.0.1", port=port)
     server = uvicorn.Server(config)
     server.run()

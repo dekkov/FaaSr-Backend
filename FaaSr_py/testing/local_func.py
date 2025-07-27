@@ -2,6 +2,7 @@ import random2
 import uuid6
 from pathlib import Path
 
+
 def default_func(test=32):
     """
     Example function ran when USE_LOCAL_USER_FUNC == True 

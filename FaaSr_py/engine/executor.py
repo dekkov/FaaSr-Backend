@@ -7,7 +7,7 @@ import subprocess
 from multiprocessing import Process
 from pathlib import Path
 
-from FaaSr_py.engine.faasr_payload import FaaSr
+from FaaSr_py.engine.faasr_payload import FaaSrPayload
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.s3_api import faasr_log, faasr_put_file
 from FaaSr_py.server.faasr_server import run_server, wait_for_server_start
@@ -21,10 +21,10 @@ class Executor:
     """
     Handles logic related to running user function
     """
-    def __init__(self, faasr: FaaSr):
-        if not isinstance(faasr, FaaSr):
-            err_msg = "{scheduler.py: initializer must be FaaSr instance}"
-            print(err_msg)
+    def __init__(self, faasr: FaaSrPayload):
+        if not isinstance(faasr, FaaSrPayload):
+            err_msg = "initializer for Executor must be FaaSr instance"
+            logger.error(err_msg)
             sys.exit(1)
         self.faasr = faasr
         self.server = None
@@ -74,19 +74,18 @@ class Executor:
                             json.dumps(user_args),
                             self.faasr["InvocationID"],
                         ],
-                        cwd = r_entry_dir
+                        cwd=r_entry_dir
                     )
                     if r_func.returncode != 0:
                         raise SystemExit(
                             f"non-zero exit code ({r_func.returncode}) from R function"
                         )
             except Exception as e:
-                err_msg = f'{{"faasr_run_user_function": "Error running user function -- {e}"}}'
-                faasr_log(self.faasr, err_msg)
-                print(err_msg)
+                err_msg = f'Error running user function -- {e}'
+                logger.exception(err_msg, stack_info=True)
                 sys.exit(1)
         else:
-            print("DEBUG MODE -- SKIPPING USER FUNCTION")
+            logger.info("SKIPPING USER FUNCTION")
 
         # At this point, the action has finished the invocation of the user Function
         # We flag this by uploading a file with the name FunctionInvoke.done to the S3 logs folder
@@ -106,7 +105,7 @@ class Executor:
 
         # Put .done file in S3
         faasr_put_file(
-            config=self.faasr,
+            faasr_payload=self.faasr,
             local_folder=log_folder_path,
             local_file=file_name,
             remote_folder=log_folder,
@@ -126,23 +125,20 @@ class Executor:
 
         # Run function
         try:
-            print("starting server")
+            logger.debug("STARTING SERVER")
             self.host_server_api()
-            print('run user function')
+            logger.debug('BEGINNING USER FUNCTION')
             self.call(action_name)
-            print('get function return value')
+            logger.debug('GETTING FUNCTION RETURN VALUES')
             function_result = self.get_function_return()
         except SystemExit as e:
-            exit_msg = f'{{"faasr_start_invoke_github_actions.py": "ERROR -- {e}"}}'
-            print(exit_msg)
+            logger.exception(e, stack_info=True)
             sys.exit(1)
         except RuntimeError as e:
-            err_msg = f'{{"faasr_start_invoke_github_actions.py": "RUNTIME ERROR while running user function -- {e}"}}'
-            print(err_msg)
+            logger.exception(e, stack_info=True)
             sys.exit(1)
         except Exception as e:
-            err_msg = f'{{"faasr_start_invoke_github_actions.py": ERROR -- MESSAGE: {e}"}}'
-            print(err_msg)
+            logger.exception(e, stack_info=True)
             sys.exit(1)
         finally:
             # Clean up server
@@ -167,8 +163,8 @@ class Executor:
         if isinstance(self.server, Process):
             self.server.terminate()
         else:
-            err_msg = "{{executor.py: ERROR -- Tried to terminate server, but no server running}}"
-            print(err_msg)
+            err_msg = "Tried to terminate server, but no server running"
+            logger.error(err_msg)
             sys.exit(1)
 
     def get_user_function_args(self):
@@ -201,24 +197,23 @@ class Executor:
             return_val = return_response.json()
         except requests.exceptions.RequestException as e:
             err_msg = (
-                f'{{"executor.py": "REQUESTS ERROR GETTING FUNCTION RESULT -- {e}"}}'
+                f"REQUESTS ERROR GETTING FUNCTION RESULT"
             )
-            print(err_msg)
-            raise RuntimeError(err_msg)
+            logger.exception(err_msg, stack_info=True)
+            raise RuntimeError(err_msg) from e
         except Exception as e:
             err_msg = (
-                f'{{"executor.py": "UNKOWN ERROR GETTING FUNCTION RESULT -- {e}"}}'
+                f'UNKOWN ERROR GETTING FUNCTION RESULT -- {e}'
             )
-            print(err_msg)
-            raise RuntimeError(err_msg)
+            logger.exception(err_msg, stack_info=True)
+            raise RuntimeError(err_msg) from e
 
         if return_val.get("Error"):
             if return_val.get("Message"):
-                err_msg = f'{{"executor.py": "ERROR IN USER FUNCTION -- MESSAGE: {return_val["Message"]} -- ABORTING"}}'
+                err_msg = f"ERROR IN USER FUNCTION -- MESSAGE: {return_val["Message"]}"
             else:
-                err_msg = '{{"executor.py": "ERROR IN USER FUNCTION -- ABORTING"}}'
-            print(err_msg)
-            faasr_log(self.faasr, err_msg)
-            raise RuntimeError(err_msg)
+                err_msg = f"ERROR IN USER FUNCTION -- DID NOT RETURN ERROR MESSAGE"
+            logger.error(err_msg, stack_info=True)
+            raise RuntimeError(err_msg) from e
 
         return return_val["FunctionResult"]

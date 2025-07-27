@@ -24,8 +24,7 @@ def validate_json(payload):
 
     schema_path = Path(__file__).parent.parent / "FaaSr.schema.json"
     if not schema_path.exists():
-        err_msg = f'{{"faasr_validate_json":"FaaSr schema file not found at {schema_path}"}}\n'
-        print(err_msg)
+        logger.error(f"FaaSr schema file not found at {schema_path}")
         sys.exit(1)
 
     # Open FaaSr schema
@@ -36,10 +35,7 @@ def validate_json(payload):
     try:
         validate(instance=payload, schema=schema)
     except ValidationError as e:
-        err_msg = (
-            f'{{"faasr_validate_json":"JSON not compliant with FaaSr schema : {e.message}"}}\n',
-        )
-        print(err_msg)
+        logger.error(f"JSON not compliant with FaaSr schema: {e.message}")
         sys.exit(1)
     return True
 
@@ -75,16 +71,10 @@ def is_cyclic(adj_graph, curr, visited, stack):
     # check each successor for cycles, recursively calling is_cyclic()
     for child in adj_graph[curr]:
         if child not in visited and is_cyclic(adj_graph, child, visited, stack):
-            err = (
-                f'{{"faasr_check_workflow_cycle":"Function loop found from node {curr} to {child}"}}\n'
-            )
-            print(err)
+            logger.error(f"Function loop found from node {curr} to {child}")
             sys.exit(1)
         elif child in stack:
-            err = (
-                f'{{"faasr_check_workflow_cycle":"Function loop found from node {curr} to {child}"}}\n'
-            )
-            print(err)
+            logger.error(f"Function loop found from node {curr} to {child}")
             sys.exit(1)
 
     # no more successors to visit for this branch and no cycles found
@@ -118,7 +108,7 @@ def build_adjacency_graph(payload):
     return adj_graph
 
 
-def check_dag(payload):
+def check_dag(faasr_payload):
     """
     This method checks for cycles, repeated function names, or unreachable nodes in the workflow
     and aborts if it finds any
@@ -128,7 +118,7 @@ def check_dag(payload):
     Returns:
         predecessors: dict -- map of function predecessors
     """
-    adj_graph = build_adjacency_graph(payload)
+    adj_graph = build_adjacency_graph(faasr_payload)
 
     # Initialize empty recursion call stack
     stack = []
@@ -141,7 +131,7 @@ def check_dag(payload):
 
     # Find initial function in the graph
     start = False
-    for func in payload["FunctionList"]:
+    for func in faasr_payload["FunctionList"]:
         if len(pre[func]) == 0:
             start = True
             # This function stores the first function with no predecessors
@@ -152,10 +142,7 @@ def check_dag(payload):
 
     # Ensure there is an initial action
     if start is False:
-        err_msg = (
-            '{"faasr_check_workflow_cycle":"function loop found: no initial action"}\n'
-        )
-        print(err_msg)
+        logger.error("Function loop found: no initial action")
         sys.exit(1)
 
     # Check for cycles
@@ -163,13 +150,11 @@ def check_dag(payload):
 
     # Check if all of the functions have been visited by the DFS
     # If not, then there is an unreachable state in the graph
-    for func in payload["FunctionList"]:
+    for func in faasr_payload["FunctionList"]:
         if func.split(".")[0] not in visited:
-            err = '{"check_workflow_cycle":"unreachable state found: ' + func + '"}\n'
-            print(err)
+            logger.error(f"Unreachable state found: {func}")
             sys.exit(1)
-
-    return pre[payload["FunctionInvoke"]]
+    return pre[faasr_payload["FunctionInvoke"]]
 
 
 def predecessors_list(adj_graph):
@@ -183,26 +168,6 @@ def predecessors_list(adj_graph):
         for func2 in adj_graph[func1]:
             pre[func2].append(func1)
     return pre
-
-
-def validate_payload(faasr):
-    # Verifies that the faasr payload is a DAG, meaning that there is no cycles
-    # If the payload is a DAG, then this function returns a predecessor list for the workflow
-    # If the payload is not a DAG, then the action aborts
-    pre = check_dag(faasr)
-
-    # Verfies the validity of S3 data stores, checking the server status and ensuring that the specified bucket exists
-    # If any of the S3 endpoints are invalid or any data store server are unreachable, the action aborts
-    faasr.s3_check()
-
-    # Initialize log if this is the first action in the workflow
-    if len(pre) == 0:
-        faasr.init_log_folder()
-
-    # If there are more than 1 predecessor, then only the final action invoked will sucessfully run
-    # This function validates that the current action is the last invocation; otherwise, it aborts
-    if len(pre) > 1:
-        faasr.abort_on_multiple_invocations(pre)
 
 
 def all_funcs_from_rank(str):

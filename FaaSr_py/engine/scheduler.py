@@ -6,7 +6,7 @@ import sys
 import logging
 import boto3
 
-from FaaSr_py.engine.faasr_payload import FaaSr
+from FaaSr_py.engine.faasr_payload import FaaSrPayload
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.s3_api import faasr_log
 
@@ -18,10 +18,10 @@ class Scheduler:
     """
     Handles scheduling of next functions in the DAG
     """
-    def __init__(self, faasr: FaaSr):
-        if not isinstance(faasr, FaaSr):
-            err_msg = "{scheduler.py: initializer must be FaaSr instance}"
-            print(err_msg)
+    def __init__(self, faasr: FaaSrPayload):
+        if not isinstance(faasr, FaaSrPayload):
+            err_msg = "initializer for Scheduler must be FaaSrPayload instance"
+            logger.error(err_msg)
             sys.exit(1)
         self.faasr = faasr
 
@@ -40,16 +40,14 @@ class Scheduler:
 
         # If there is no more triggers, then return
         if not invoke_next:
-            msg = f'{{"faasr_trigger":"no triggers for {curr_func}"}}\n'
-            print(msg)
-            faasr_log(self.faasr, msg)
+            msg = f"no triggers for {curr_func}"
+            logger.info(msg)
             return
 
         # Ensure that function returned a value if conditionals are present
         if contains_dict(invoke_next) and return_val is None:
-            err_msg = '{"faasr_trigger":"ERROR -- InvokeNext contains conditionals but function did not return a value"}'
-            print(err_msg)
-            faasr_log(self.faasr, err_msg)
+            err_msg = "ERROR -- InvokeNext contains conditionals but function did not return a value"
+            logger.error(err_msg)
             sys.exit(1)
 
         for next_trigger in invoke_next:
@@ -82,16 +80,15 @@ class Scheduler:
         next_server = self.faasr["FunctionList"][function]["FaaSServer"]
 
         if global_config.SKIP_REAL_TRIGGERS:
-            print("DEBUG MODE -- SKIPPING REAL TRIGGERS")
+            logger.info("------SKIPPING REAL TRIGGERS------")
 
         for rank in range(1, rank_num + 1):
             if rank_num > 1:
                 self.faasr["FunctionList"][function]["Rank"] = f"{rank}/{rank_num}"
 
             if next_server not in self.faasr["ComputeServers"]:
-                err_msg = f'{{"faasr_trigger":"invalid server name: {next_server}"}}\n'
-                print(err_msg)
-                faasr_log(self.faasr, err_msg)
+                err_msg = f"invalid server name: {next_server}"
+                logger.error(err_msg)
                 break
 
             next_compute_server = self.faasr["ComputeServers"][next_server]
@@ -109,7 +106,7 @@ class Scheduler:
                 msg = f"SIMULATED TRIGGER: {function}"
                 if rank_num > 1:
                     msg += f".{rank}"
-                print(msg)
+                logger.info(msg)
 
     def invoke_gh(self, next_compute_server, function):
         """
@@ -160,38 +157,41 @@ class Scheduler:
 
         # Log response
         if response.status_code == 204:
-            succ_msg = f"{{faasr_trigger: GitHub Action: Successfully invoked: {self.faasr['FunctionInvoke']}}}\n"
-            print(succ_msg)
+            succ_msg = f"GitHub Action: Successfully invoked: {self.faasr['FunctionInvoke']}"
+            logger.info(succ_msg)
             faasr_log(self.faasr, succ_msg)
         elif response.status_code == 401:
             err_msg = "{faasr_trigger: GitHub Action: Authentication failed, check the credentials}\n"
             print(err_msg)
             faasr_log(self.faasr, err_msg)
         elif response.status_code == 404:
-            err_msg = f"{{faasr_trigger: GitHub Action: Cannot find the destination, check the repo name: {repo} and workflow name: {workflow_file}}}\n"
-            print(err_msg)
-            faasr_log(self.faasr, err_msg)
+            err_msg = (
+                f"GitHub Action: Cannot find the destination -- check the repo name: {repo}, "
+                f"workflow name: {workflow_file}, and branch: {git_ref}"
+            )
+            logger.error(err_msg)
+            sys.exit(1)
         elif response.status_code == 422:
             message = response.json().get("message")
             if message:
-                err_msg = f"{{'faasr_trigger: GitHub Action': 'Cannot find the destination -- {message}'}}\n"
+                err_msg = f"GitHub Action': 'Cannot find the destination -- {message}"
             else:
-                err_msg = f"{{'faasr_trigger: GitHub Action': 'Cannot find the destination -- check ref {git_ref}'}}\n"
-            print(err_msg)
-            faasr_log(self.faasr, err_msg)
+                err_msg = f"GitHub Action': 'Cannot find the destination -- check ref {git_ref}"
+            logger.error(err_msg)
+            sys.exit(1)
         else:
             if response:
                 message = response.json().get("message")
                 if message:
-                    err_msg = f"{{faasr_trigger: GitHub Action: error when invoking function -- {message}}}\n"
+                    err_msg = f"GitHub Action: error when invoking function -- {message}"
                 else:
-                    err_msg = "{{faasr_trigger: GitHub Action: unknown error happens when invoke next function}}\n"
-                print(err_msg)
-                faasr_log(self.faasr, err_msg)
+                    err_msg = "GitHub Action: unknown error happens when invoke next function"
+                logger.error(err_msg)
+                sys.exit(1)
             else:
-                err_msg = f"{{faasr_trigger: GitHub Action: unknown error when invoking {function}}}\n"
-                print(err_msg)
-                faasr_log(self.faasr, err_msg)
+                err_msg = f"GitHub Action: unknown error when invoking {function}"
+                logger.error(err_msg)
+                sys.exit(1)
 
     # to-do
     def invoke_lambda(self, next_compute_server, function):
@@ -230,7 +230,10 @@ class Scheduler:
             faasr_log(self.faasr, succ_msg)
         else:
             try:
-                err_msg = f"{{\"faasr_trigger\": \"Error invoking function: {self.faasr['FunctionInvoke']} -- error: {response['FunctionError']}\"}}\n"
+                err_msg = (
+                    f"{{\"faasr_trigger\": \"Error invoking function: {self.faasr['FunctionInvoke']} -- "
+                    f"error: {response['FunctionError']}\"}}\n"
+                )
                 print(err_msg)
                 faasr_log(self.faasr, err_msg)
             except Exception:
@@ -306,7 +309,9 @@ class Scheduler:
             print(succ_msg)
             faasr_log(self.faasr, succ_msg)
         else:
-            err_msg = f"{{\"faasr_trigger\":\"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']} -- status code: {response.status_code}\"}}"
+            err_msg = (
+                f"{{\"faasr_trigger\":\"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']} -- status code: {response.status_code}\"}}"
+            )
             print(err_msg)
             faasr_log(self.faasr, err_msg)
 

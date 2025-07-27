@@ -21,35 +21,35 @@ def validate_uuid(uuid_value):
     return True
 
 
-def get_logging_server(faasr):
+def get_logging_server(faasr_payload):
     """
     Returns the default logging datastore for the payload as a string
 
     If LoggingDataStore is None, then returns DefaultDataStore
     """
-    if faasr["LoggingDataStore"] is None:
-        logging_server = faasr["DefaultDataStore"]
+    if faasr_payload["LoggingDataStore"] is None:
+        logging_server = faasr_payload["DefaultDataStore"]
     else:
-        logging_server = faasr["LoggingDataStore"]
+        logging_server = faasr_payload["LoggingDataStore"]
     return logging_server
 
 
-def get_default_log_boto3_client(faasr):
+def get_default_log_boto3_client(faasr_payload):
     """
     Returns a boto3 client associated with default logging datastore
 
     Arguments:
-        faasr: FaaSr payload dict
+        faasr_payload: FaaSr payload dict
     Returns:
         boto3.client: boto3 client for S3 datastore
     """
     # Get the target S3 server
-    target_s3 = get_logging_server(faasr)
-    s3_log_info = faasr["DataStores"][target_s3]
+    target_s3 = get_logging_server(faasr_payload)
+    s3_log_info = faasr_payload["DataStores"][target_s3]
 
-    if target_s3 not in faasr["DataStores"]:
-        err = f'{"get_default_log_client":"Invalid data server name: {target_s3}"}\n'
-        print(err)
+    if target_s3 not in faasr_payload["DataStores"]:
+        err_msg = f"Invalid data server name: {target_s3}"
+        logger.error(err_msg)
         sys.exit(1)
 
     return boto3.client(

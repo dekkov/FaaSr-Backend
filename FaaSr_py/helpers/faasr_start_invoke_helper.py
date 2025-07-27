@@ -54,8 +54,8 @@ def faasr_get_github(faasr_source, path, token=None):
     # ensure path has two parts [username/repo]
     parts = path.split("/")
     if len(parts) < 2:
-        err_msg = '{"faasr_install_git_repo":"github path should contain at least two parts"}\n'
-        print(err_msg)
+        err_msg = "github path should contain at least two parts"
+        logger.error(err_msg)
         sys.exit(1)
 
     # construct gh url
@@ -104,16 +104,17 @@ def faasr_get_github(faasr_source, path, token=None):
 
         os.remove(tar_name)
 
-        msg = '{"faasr_install_git_repo":"Successful"}\n'
-        print(msg)
+        if path:
+            logger.info(f"Successfully downloaded GitHub repo sub-path: {path}")
+        else:
+            logger.info(f"Successfully downloaded entire GitHub repo: {repo}")
     else:
         try:
             err_response = response1.json()
             message = err_response.get("message")
         except Exception:
             message = "invalid or no response from GH"
-        err_msg = f'{{"faasr_install_git_repo":"ERROR -- {message}"}}\n'
-        print(err_msg)
+        logger.error(message)
         sys.exit(1)
 
 
@@ -130,8 +131,8 @@ def faasr_get_github_raw(token, path):
     """
     parts = path.split("/")
     if len(parts) < 3:
-        err_msg = '{"faasr_get_github_raw":"github path should contain at least three parts"}\n'
-        print(err_msg)
+        err_msg = "github path should contain at least three parts"
+        logger.error(err_msg)
         sys.exit(1)
 
     # construct gh url
@@ -150,8 +151,7 @@ def faasr_get_github_raw(token, path):
     response1 = requests.get(url, headers=headers)
 
     if response1.status_code == 200:
-        msg = '{"faasr_install_git_repo":"Successful"}\n'
-        print(msg)
+        logger.info(f"Successfully fetched raw file from GitHub: {path}")
         data = response1.json()
         content = data.get("content", "")
         decoded_bytes = base64.b64decode(content)
@@ -163,8 +163,7 @@ def faasr_get_github_raw(token, path):
             message = err_response.get("message")
         except Exception:
             message = "invalid or no response from GH"
-        err_msg = f'{{"faasr_install_git_repo":"ERROR -- {message}"}}\n'
-        print(err_msg)
+        logger.error(f"Failed to fetch raw file from GitHub: {path} -- {message}")
         sys.exit(1)
 
 
@@ -181,7 +180,7 @@ def faasr_install_git_repos(faasr_source, func_type, gits, token):
     if isinstance(gits, str):
         gits = [gits]
     if not gits:
-        print('{"faasr_install_git_repo":"No git repo dependency"}\n')
+        logger.info("No git repo dependency")
     else:
         # download content from each path
         for path in gits:
@@ -190,24 +189,23 @@ def faasr_install_git_repos(faasr_source, func_type, gits, token):
                 path.endswith("git")
                 or path.startswith("https://")
             ):
-                msg = f'{{"faasr_install_git_repo":"clone github: {path}"}}\n'
-                print(msg)
+                logger.info(f"Clone GitHub repo: {path}")
                 faasr_get_github_clone(path)
             else:
                 # if path is a python file, download
                 file_name = os.path.basename(path)
-                if ((file_name.endswith(".py") and func_type == "Python")
-                    or (file_name.endswith(".R") and func_type == "R")):
-                    msg = f'{{"faasr_install_git_repo":"get file: {file_name}"}}\n'
-                    print(msg)
+                if (
+                    (file_name.endswith(".py") and func_type == "Python")
+                    or (file_name.endswith(".R") and func_type == "R")
+                ):
+                    logger.info(f"Get file: {file_name}")
                     content = faasr_get_github_raw(token, path)
                     # write fetched file to disk
                     with open(file_name, "w") as f:
                         f.write(content)
                 else:
                     # if the path is a non-python file, download the repo
-                    msg = f'{{"faasr_install_git_repo":"get git repo files: {path}"}}\n'
-                    print(msg)
+                    logger.info(f"Get git repo files: {path}")
                     faasr_get_github(faasr_source, path, token)
 
 
@@ -217,20 +215,20 @@ def faasr_pip_install(package):
     """
     # run pip install [package] command
     if not package:
-        print("{\"faasr_install_PyPI\":\"No PyPI package dependency\"}\n")
+        logger.info("No PyPI package dependency")
     else:
         command = ["pip", "install", "--no-input", package]
         subprocess.run(command, text=True)
 
 
-def faasr_install_cran(package, lib_path = None):
+def faasr_install_cran(package, lib_path=None):
     """
     Installs a single cran package
     """
     if not package:
-        print("{\"faasr_install_cran\":\"No CRAN package dependency\"}\n")
+        logger.info("No CRAN package dependency")
     else:
-        print(f"{{\"faasr_install_cran\":\"Install CRAN package {package}\"}}\n")
+        logger.info(f"Install CRAN package {package}")
         if lib_path:
             lib_path = f'"{lib_path}"'
         else:
@@ -246,7 +244,7 @@ def faasr_pip_gh_install(path):
     parts = path.split("/")
     if len(parts) < 2:
         err_msg = '{"faasr_pip_install":"github path should contain at least two parts"}\n'
-        print(err_msg)
+        logger.error("GitHub path should contain at least two parts")
         sys.exit(1)
 
     # construct gh url
@@ -264,11 +262,11 @@ def faasr_install_git_packages(gh_packages, type, lib_path=None):
     Install a list of git packages
     """
     if not gh_packages:
-        print('{"faasr_install_git_package":"No git package dependency"}\n')
+        logger.info("No git package dependency")
     else:
         # install each package
         for package in gh_packages:
-            print(f'{{"faasr_install_git_package":"Install Github package {package}"}}\n')
+            logger.info(f"Install GitHub package {package}")
             if type == "Python":
                 faasr_pip_gh_install(package)
             elif type == "R":
@@ -276,7 +274,10 @@ def faasr_install_git_packages(gh_packages, type, lib_path=None):
                     lib_path = f'"{lib_path}"'
                 else:
                     lib_path = ".libPaths()[1]"
-                command = ["Rscript", "-e", f'withr::with_libpaths(new={lib_path}, devtools::install_github("{package}", force=TRUE))']
+                command = ["Rscript",
+                           "-e", 
+                           f'withr::with_libpaths(new={lib_path}, devtools::install_github("{package}", force=TRUE))'
+                ]
                 subprocess.run(command, text=True)
 
 
@@ -295,10 +296,9 @@ def faasr_func_dependancy_install(faasr_source, action):
 
     # get token if present
     token = os.getenv("TOKEN")
-        
+
     if not token:
-        msg = '{"faasr_install_git_repo":"Warning: No GH token used. May hit rate limits when installing functions"}\n'
-        print(msg)
+        logger.warning("No GitHub token used. May hit rate limits when installing functions.")
 
     # get gh functions
     faasr_install_git_repos(faasr_source, func_type, gits, token)

@@ -7,12 +7,12 @@ from collections import namedtuple
 logger = logging.getLogger(__name__)
 
 
-def faasr_get_s3_creds(config, server_name=""):
+def faasr_get_s3_creds(faasr_payload, server_name=""):
     """
     Returns credentials needed to create an Apache Pyarrow S3FileSystem instance
 
     Arguments:
-        config: FaaSr payload dict
+        faasr_payload: FaaSr payload dict
         server_name: str -- name of S3 data store to get credentials from
     Returns:
         dict: A dict with the fields
@@ -20,15 +20,14 @@ def faasr_get_s3_creds(config, server_name=""):
     """
     # fetch server name if one is not provided
     if server_name == "":
-        server_name = config["DefaultDataStore"]
+        server_name = faasr_payload["DefaultDataStore"]
 
     # ensure that server name provided is valid
-    if server_name not in config["DataStores"]:
-        err_msg = f'{{"faasr_get_arrow":"Invalid data server name: {server_name}"}}\n'
-        print(err_msg)
+    if server_name not in faasr_payload["DataStores"]:
+        logger.error(f"Invalid data server name: {server_name}")
         sys.exit(1)
 
-    target_s3 = config["DataStores"][server_name]
+    target_s3 = faasr_payload["DataStores"][server_name]
 
     if not target_s3.get("Anonymous") or len(target_s3["Anonymous"]) == 0:
         anonymous = False
@@ -50,8 +49,7 @@ def faasr_get_s3_creds(config, server_name=""):
             secret_key = target_s3["SecretKey"]
             access_key = target_s3["AccessKey"]
         except KeyError as e:
-            err_msg = f'{{"faasr_get_arrow":"Missing key in S3 data store: {e}"}}\n'
-            print(err_msg)
+            logger.error(f"Missing key in S3 data store: {e}")
             sys.exit(1)
 
     # return credentials as namedtuple

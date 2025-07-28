@@ -176,11 +176,7 @@ def run_server(faasr_payload, port, start_time):
         port: int -- port to run the server on
     """
     # since server runs as a seperate process, we need to re-add the s3 logger handler
-    logger.info("no add s3")
     global_config.add_s3_log_handler(faasr_payload, start_time)
-    logger.info("added s3")
-
-    flush_s3_log()
 
     register_request_handler(faasr_payload)
     config = uvicorn.Config(faasr_api, host="127.0.0.1", port=port)

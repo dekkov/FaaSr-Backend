@@ -46,7 +46,7 @@ class Scheduler:
 
         # Ensure that function returned a value if conditionals are present
         if contains_dict(invoke_next) and return_val is None:
-            err_msg = "ERROR -- InvokeNext contains conditionals but function did not return a value"
+            err_msg = "InvokeNext contains conditionals but function did not return a value"
             logger.error(err_msg)
             sys.exit(1)
 
@@ -92,7 +92,7 @@ class Scheduler:
             if next_server not in self.faasr["ComputeServers"]:
                 err_msg = f"invalid server name: {next_server}"
                 logger.error(err_msg)
-                break
+                sys.exit(1)
 
             next_compute_server = self.faasr["ComputeServers"][next_server]
             next_server_type = next_compute_server["FaaSType"]
@@ -177,9 +177,9 @@ class Scheduler:
             logger.info(succ_msg)
             faasr_log(self.faasr, succ_msg)
         elif response.status_code == 401:
-            err_msg = "{faasr_trigger: GitHub Action: Authentication failed, check the credentials}\n"
-            print(err_msg)
-            faasr_log(self.faasr, err_msg)
+            err_msg = "GitHub Action: Authentication failed, check the credentials"
+            logger.error(err_msg)
+            sys.exit(1)
         elif response.status_code == 404:
             err_msg = (
                 f"GitHub Action: Cannot find the destination -- check the repo name: {repo}, "
@@ -199,7 +199,7 @@ class Scheduler:
             if response:
                 message = response.json().get("message")
                 if message:
-                    err_msg = f"GitHub Action: error when invoking function -- {message}"
+                    err_msg = f"{message}"
                 else:
                     err_msg = "GitHub Action: unknown error happens when invoke next function"
                 logger.error(err_msg)
@@ -235,27 +235,23 @@ class Scheduler:
                 Payload=json.dumps(self.faasr.get_complete_workflow()),
             )
         except Exception as e:
-            err_msg = f"{{\"faasr_trigger\": \"Error invoking function: {self.faasr['FunctionInvoke']} -- {e}\"}}\n"
-            print(err_msg)
-            faasr_log(self.faasr, err_msg)
-            return
+            logger.exception(e, stack_info=True)
+            sys.exit(1)
 
         if "StatusCode" in response and str(response["StatusCode"])[0] == "2":
-            succ_msg = f"{{\"faasr_trigger\": \"Successfully invoked: {self.faasr['FunctionInvoke']}\"}}\n"
-            print(succ_msg)
-            faasr_log(self.faasr, succ_msg)
+            succ_msg = f"Lambda: Successfully invoked: {self.faasr['FunctionInvoke']}"
+            logger.info(succ_msg)
         else:
             try:
                 err_msg = (
-                    f"{{\"faasr_trigger\": \"Error invoking function: {self.faasr['FunctionInvoke']} -- "
-                    f"error: {response['FunctionError']}\"}}\n"
+                    f"Error invoking function: {self.faasr['FunctionInvoke']} -- "
+                    f"{response['FunctionError']}"
                 )
-                print(err_msg)
-                faasr_log(self.faasr, err_msg)
+                logger.error(err_msg)
             except Exception:
-                err_msg = f"{{\"faasr_trigger\": \"Error invoking function: {self.faasr['FunctionInvoke']} -- no response from AWS\"}}\n"
-                print(err_msg)
-                faasr_log(self.faasr, err_msg)
+                err_msg = f"Error invoking function: {self.faasr['FunctionInvoke']} -- no response from AWS"
+                logger.exception(err_msg, stack_info=True)
+            sys.exit(1)
 
     # to-do
     def invoke_ow(self, next_compute_server, function):
@@ -310,26 +306,23 @@ class Scheduler:
                 verify=ssl,
             )
         except requests.exceptions.ConnectionError:
-            err_msg = f"{{faasr_trigger: OpenWhisk: Error invoking {self.faasr['FunctionInvoke -- connection error']}}}"
-            print(err_msg)
+            logger.exception(e, stack_info=True)
             sys.exit(1)
         except Exception as e:
-            err_msg = f"{{\"faasr_trigger\": \"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']} -- see logs\"}}"
-            nat_err_msg = f"{{\"faasr_trigger\": \"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']} -- error: {e}\"}}"
-            print(err_msg)
-            faasr_log(self.faasr, nat_err_msg)
+            err_msg = f"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']} -- error: {e}"
+            logger.exception(err_msg, stack_info=True)
             sys.exit(1)
 
         if response.status_code == 200 or response.status_code == 202:
-            succ_msg = f"{{\"faasr_trigger\":\"OpenWhisk: Succesfully invoked {self.faasr['FunctionInvoke']}\"}}"
-            print(succ_msg)
-            faasr_log(self.faasr, succ_msg)
+            succ_msg = f"OpenWhisk: Succesfully invoked {self.faasr['FunctionInvoke']}"
+            logger.info(succ_msg)
+            sys.exit(1)
         else:
             err_msg = (
-                f"{{\"faasr_trigger\":\"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']} -- status code: {response.status_code}\"}}"
+                f"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']} -- status code: {response.status_code}"
             )
-            print(err_msg)
-            faasr_log(self.faasr, err_msg)
+            logger.error(err_msg)
+            sys.exit(1)
 
 
 def contains_dict(list_obj):

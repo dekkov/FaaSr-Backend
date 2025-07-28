@@ -3,6 +3,8 @@ import sys
 import boto3
 import logging
 
+from FaaSr_py.config.s3_log_sender import S3LogSender
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,3 +61,7 @@ def get_default_log_boto3_client(faasr_payload):
         region_name=s3_log_info["Region"],
         endpoint_url=s3_log_info["Endpoint"],
     )
+
+def flush_s3_log():
+    log_sender = S3LogSender.get_log_sender()
+    log_sender.flush_log()

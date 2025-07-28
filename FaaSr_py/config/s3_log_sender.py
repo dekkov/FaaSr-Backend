@@ -11,25 +11,29 @@ class S3LogSender:
     """
     Uploads dev logs to S3
     """
-    _sender = None
+    _log_sender = None
 
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
         """
         Singleton pattern to ensure only one instance of S3LogSender exists
         """
-        if cls._sender is None:
-            cls._sender = super(S3LogSender, cls).__new__(cls)
-            cls._sender._initialized = False 
-        return cls._sender
+        if cls._log_sender is None:
+            cls._log_sender = super(S3LogSender, cls).__new__(cls)
+            cls._log_sender._initialized = False 
+        return cls._log_sender
 
-    def __init__(self):
+    def __init__(self, timestamp, faasr_payload):
         if self._initialized:
             return
         S3LogSender._sender = self
         self._initialized = True
         self._log_buffer = []
-        self._start_time = datetime.now()
-        self._faasr_payload = None 
+        self._start_time = timestamp
+        self._faasr_payload = faasr_payload
+
+    @classmethod
+    def get_log_sender(cls):
+        return cls._log_sender
 
     @property
     def faasr_payload(self):
@@ -65,8 +69,6 @@ class S3LogSender:
             sys.exit(1)
         if not self._log_buffer:
             return
-        
-        logger.debug(f"Flushing S3 logs")
 
         # Combine all log messages into a single string and clear buffer
         full_log = "\n".join(self._log_buffer)
@@ -85,5 +87,3 @@ class S3LogSender:
         elapsed_time = datetime.now() - self._start_time
         seconds = round(elapsed_time.total_seconds(), 3)
         return seconds
-
-s3_sender = S3LogSender() # Singleton instance

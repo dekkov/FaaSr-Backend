@@ -16,7 +16,7 @@ import importlib
 logger = logging.getLogger(__name__)
 
 
-def faasr_get_github_clone(url, base_dir="/tmp"):
+def faasr_get_github_clone(faasr_payload, url, base_dir=None):
     """
     Downloads a github repo clone from the repo's url
 
@@ -24,6 +24,9 @@ def faasr_get_github_clone(url, base_dir="/tmp"):
         url: HTTPS url to git repo
         base_dir: directory to which GitHub repo should be cloned
     """
+    if not base_dir:
+        base_dir = f"/tmp/functions/{faasr_payload["InvocationID"]}"
+
     pattern = r"([^/]+/[^/]+)\.git$"
     match = re.search(pattern, url)
     if not match:
@@ -78,39 +81,38 @@ def faasr_get_github(faasr_source, path, token=None):
     }
 
     # send get request
-    response1 = requests.get(
+    response = requests.get(
         url,
         headers=headers,
         stream=True,
     )
 
     # if the response code is 200 (successful), then write the content of the repo to the tarball file
-    if response1.status_code == 200:
+    if response.status_code == 200:
         with open(tar_name, "wb") as f:
-            for chunk in response1.iter_content(chunk_size=8192):
+            for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
 
         with tarfile.open(tar_name) as tar:
             root_dir = tar.getnames()[0]
+            extract_base = f"/tmp/functions/{faasr_source['InvocationID']}"
+            os.makedirs(extract_base, exist_ok=True)
 
             if path:
                 extract_path = os.path.join(root_dir, path)
-                members = [
-                    mem for mem in tar.getmembers() if mem.name.startswith(extract_path)
-                ]
-                tar.extractall(path=f"/tmp/functions{faasr_source['InvocationID']}", members=members)
+                members = [mem for mem in tar.getmembers() if mem.name.startswith(extract_path)]
+                tar.extractall(path=extract_base, members=members)
             else:
-                tar.extractall(path=f"/tmp/functions{faasr_source['InvocationID']}")
-
+                tar.extractall(path=extract_base)
         os.remove(tar_name)
 
         if path:
-            logger.info(f"Successfully downloaded GitHub repo sub-path: {path}")
+            logger.info(f"Successfully downloaded GitHub repo sub folder: {path}")
         else:
-            logger.info(f"Successfully downloaded entire GitHub repo: {repo}")
+            logger.info(f"Successfully downloaded GitHub repo: {repo}")
     else:
         try:
-            err_response = response1.json()
+            err_response = response.json()
             message = err_response.get("message")
         except Exception:
             message = "invalid or no response from GH"
@@ -189,8 +191,8 @@ def faasr_install_git_repos(faasr_source, func_type, gits, token):
                 path.endswith("git")
                 or path.startswith("https://")
             ):
-                logger.info(f"Clone GitHub repo: {path}")
-                faasr_get_github_clone(path)
+                logger.info(f"Cloning GitHub repo: {path}")
+                faasr_get_github_clone(faasr_source, path)
             else:
                 # if path is a python file, download
                 file_name = os.path.basename(path)
@@ -200,8 +202,11 @@ def faasr_install_git_repos(faasr_source, func_type, gits, token):
                 ):
                     logger.info(f"Get file: {file_name}")
                     content = faasr_get_github_raw(token, path)
+                    target_dir = "/tmp/functions"
+                    if not os.path.exists(target_dir):
+                        os.makedirs(target_dir, exist_ok=True)
                     # write fetched file to disk
-                    with open(file_name, "w") as f:
+                    with open(os.path.join(target_dir, file_name), "w") as f:
                         f.write(content)
                 else:
                     # if the path is a non-python file, download the repo
@@ -228,7 +233,7 @@ def faasr_install_cran(package, lib_path=None):
     if not package:
         logger.info("No CRAN package dependency")
     else:
-        logger.info(f"Install CRAN package {package}")
+        logger.info(f"Installing CRAN package {package}")
         if lib_path:
             lib_path = f'"{lib_path}"'
         else:

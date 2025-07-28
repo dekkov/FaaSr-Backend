@@ -5,6 +5,8 @@ import logging
 
 from pydantic import BaseModel
 from fastapi import FastAPI
+from FaaSr_py.config.debug_config import global_config
+from FaaSr_py.helpers.s3_helper_functions import flush_s3_log
 from FaaSr_py.helpers.rank import faasr_rank
 from FaaSr_py.s3_api import (
     faasr_log,
@@ -70,7 +72,8 @@ def register_request_handler(faasr_payload):
         Handler for FaaSr function requests
         """
         nonlocal error
-        print(f"Processing request: {request.ProcedureID}")
+        logger.info(f"Processing request: {request.ProcedureID}")
+        
         args = request.Arguments or {}
         return_obj = Response(Success=True, Data={})
         try:
@@ -102,6 +105,8 @@ def register_request_handler(faasr_payload):
             logger.error(err_msg)
             error = True
             sys.exit(1)
+        # flush log after every function, since we don't know when user function will end
+        flush_s3_log()
         return return_obj
 
     @faasr_api.post("/faasr-return")
@@ -111,6 +116,7 @@ def register_request_handler(faasr_payload):
         """
         nonlocal return_val
         return_val = return_obj.FunctionResult
+        flush_s3_log()
         return Response(Success=True)
 
     @faasr_api.post("/faasr-exit")
@@ -122,6 +128,7 @@ def register_request_handler(faasr_payload):
         if exit_obj.Error:
             error = True
             message = exit_obj.Message
+        flush_s3_log()
         return Response(Success=True)
 
     @faasr_api.get("/faasr-get-return")
@@ -129,11 +136,15 @@ def register_request_handler(faasr_payload):
         """
         Handler to get the return value from the FaaSr function
         """
+        flush_s3_log()
         return Result(FunctionResult=return_val, Error=error, Message=message)
 
 
 @faasr_api.get("/faasr-echo")
 def faasr_echo(message: str):
+    """
+    Echo to poll server
+    """
     return {"message": message}
 
 
@@ -156,7 +167,7 @@ def wait_for_server_start(port):
 
 
 # starts a server listening on localhost
-def run_server(faasr_payload, port):
+def run_server(faasr_payload, port, start_time):
     """
     Starts a FastAPI server to handle FaaSr requests
     
@@ -164,6 +175,13 @@ def run_server(faasr_payload, port):
         faasr_payload: FaaSr payload dict
         port: int -- port to run the server on
     """
+    # since server runs as a seperate process, we need to re-add the s3 logger handler
+    logger.info("no add s3")
+    global_config.add_s3_log_handler(faasr_payload, start_time)
+    logger.info("added s3")
+
+    flush_s3_log()
+
     register_request_handler(faasr_payload)
     config = uvicorn.Config(faasr_api, host="127.0.0.1", port=port)
     server = uvicorn.Server(config)

@@ -80,7 +80,7 @@ class Scheduler:
         next_server = self.faasr["FunctionList"][function]["FaaSServer"]
 
         if global_config.SKIP_REAL_TRIGGERS:
-            logger.info("------SKIPPING REAL TRIGGERS------")
+            logger.info("SKIPPING REAL TRIGGERS")
 
         for rank in range(1, rank_num + 1):
             if rank_num > 1:

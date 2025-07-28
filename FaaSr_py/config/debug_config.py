@@ -70,7 +70,7 @@ class Config:
         self.USE_LOCAL_FILE_SYSTEM = self.__dict__["_USE_LOCAL_FILE_SYSTEM"]
         self.LOCAL_FILE_SYSTEM_DIR = self.__dict__["_LOCAL_FILE_SYSTEM_DIR"]
 
-    def add_s3_log_handler(self, faasr_payload, level=logging.DEBUG):
+    def add_s3_log_handler(self, faasr_payload, start_time, level=logging.DEBUG):
         """
         Start s3 logger
         """
@@ -79,7 +79,7 @@ class Config:
         logger = logging.getLogger()
 
         # Initialize S3 log handler
-        s3_log_handler = S3LogHandler(faasr_payload=faasr_payload, level=level)
+        s3_log_handler = S3LogHandler(faasr_payload=faasr_payload, level=level, start_time=start_time)
 
         # Filter out 3rd party packages
         s3_log_handler.addFilter(FaaSrFilter())

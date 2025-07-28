@@ -1,18 +1,16 @@
 import logging
 import atexit
 
-from FaaSr_py.config.s3_log_sender import s3_sender
+from FaaSr_py.config.s3_log_sender import S3LogSender
 
 
 logger = logging.getLogger(__name__)
 
 
 class S3LogHandler(logging.Handler):
-    def __init__(self, faasr_payload, level):
+    def __init__(self, faasr_payload, level, start_time):
         # Initialize the S3LogSender with the provided faasr_payload
-        s3_sender.faasr_payload = faasr_payload
-
-        self._sender = s3_sender
+        self._sender = S3LogSender(timestamp=start_time, faasr_payload=faasr_payload)
         super().__init__(level=level)
         
     def emit(self, record):

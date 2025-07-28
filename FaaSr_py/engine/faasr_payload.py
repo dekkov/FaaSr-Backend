@@ -51,8 +51,10 @@ class FaaSrPayload():
             raise ValueError("Payload validation error")
 
         self.url = url
-        self.log_file = self["FunctionInvoke"] + ".txt"
-
+        if "FunctionRank" in self and self["FunctionRank"]:
+            self.log_file = f"{self["FunctionInvoke"]}({self["FunctionRank"]}).txt"
+        else:
+            self.log_file = f"{self["FunctionInvoke"]}.txt"
         logger.debug(f"Payload initialized with URL: {self.url}")
 
     def __getitem__(self, key: str):

@@ -99,16 +99,22 @@ def build_adjacency_graph(payload):
         if isinstance(invoke_next, str):
             invoke_next = [invoke_next]
         for child in invoke_next:
+            def process_action(action):
+                action_name, action_rank = extract_rank(action)
+                if action_name in ranks and ranks[action_name] > 1:
+                    err_msg = "Function with rank cannot have multiple predecessors"
+                    logger.error(err_msg)
+                    sys.exit(1)
+                else:
+                    adj_graph[func].append(action_name)
+                    ranks[action_name] = action_rank
+
             if isinstance(child, dict):
                 for conditional_branch in child.values():
                     for action in conditional_branch:
-                        action_name, action_rank = extract_rank(action) 
-                        adj_graph[func].append(action_name)
-                        ranks[action_name] = action_rank
+                        process_action(action)
             else:
-                action_name, action_rank = extract_rank(child) 
-                adj_graph[func].append(action_name)
-                ranks[action_name] = action_rank
+                process_action(child)
     return (adj_graph, ranks)
 
 
@@ -131,7 +137,7 @@ def check_dag(faasr_payload):
     visited = set()
 
     # Initialize predecessor list
-    pre = predecessors_list(adj_graph, ranks)
+    pre = predecessors_list(adj_graph)        
 
     # Find initial function in the graph
     start = False
@@ -158,10 +164,19 @@ def check_dag(faasr_payload):
         if func.split(".")[0] not in visited:
             logger.error(f"Unreachable state found: {func}")
             sys.exit(1)
-    return pre[faasr_payload["FunctionInvoke"]]
+
+    curr_pre = pre[faasr_payload["FunctionInvoke"]]
+    real_pre = []
+    for p in curr_pre:
+        if ranks[p] > 1:
+            for i in range(1, ranks[p] + 1):
+                real_pre.append(f"{p}.{i}")
+        else:
+            real_pre.append(p)
+    return real_pre
 
 
-def predecessors_list(adj_graph, ranks):
+def predecessors_list(adj_graph):
     """This function returns a map of action predecessor pairs
 
     Arguments:
@@ -170,11 +185,7 @@ def predecessors_list(adj_graph, ranks):
     pre = defaultdict(list)
     for func1 in adj_graph:
         for func2 in adj_graph[func1]:
-            if ranks.get(func1) and ranks.get(func1) > 1:
-                for i in range(1, ranks[func1] + 1):
-                    pre[func2].append(f"{func1}.{i}")
-            else:
-                pre[func2].append(func1)
+            pre[func2].append(func1)
     return pre
 
 

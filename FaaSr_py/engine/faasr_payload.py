@@ -23,6 +23,9 @@ class FaaSrPayload():
     The URL points to a GitHub raw file containing the workflow JSON.
     The class also provides methods to validate the workflow, replace secrets, and check S3 data stores.
     It can also initialize a log folder and handle multiple invocations of functions.
+
+    Top level changes (e.g. faasr_obj["FunctionInvoke"] = some_func) are tracked in self.overwritten.
+    The scheduler will propgates these changes to the next function in the workflow
     """
     def __init__(self, url: str, overwritten=None, token=None):
         # without PAT, larger workflows run the risk
@@ -338,8 +341,5 @@ class FaaSrPayload():
         # This function validates that the current action is the last invocation; otherwise, it aborts
         if len(pre) > 1:
             self.abort_on_multiple_invocations(pre)
-
-        # Start S3 logger -- logs with level of DEBUG or higher (all logs) will be sent to
-        # S3. All logs above INFO will be sent to STDOUT & S3
-        global_config.add_s3_log_handler(self)
+        
 

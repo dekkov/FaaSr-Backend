@@ -125,9 +125,14 @@ def check_dag(faasr_payload):
 
     Arguments:
         payload: FaaSr payload dict
-    Returns:
+    Returns:  
         predecessors: dict -- map of function predecessors
     """
+    if faasr_payload["FunctionInvoke"] not in faasr_payload["FunctionList"]:
+        err_msg = "FunctionInvoke does not refer to a valid function"
+        logger.error(err_msg)
+        sys.exit(1)
+
     adj_graph, ranks = build_adjacency_graph(faasr_payload)
 
     # Initialize empty recursion call stack
@@ -168,7 +173,7 @@ def check_dag(faasr_payload):
     curr_pre = pre[faasr_payload["FunctionInvoke"]]
     real_pre = []
     for p in curr_pre:
-        if ranks[p] > 1:
+        if p in ranks and ranks[p] > 1:
             for i in range(1, ranks[p] + 1):
                 real_pre.append(f"{p}.{i}")
         else:

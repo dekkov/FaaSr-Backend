@@ -72,6 +72,7 @@ def faasr_rsm(faasr_payload):
                 s3_client.delete_object(Bucket=target_s3["Bucket"], Key=flag_name)
                 return True
             else:
+                s3_client.delete_object(Bucket=target_s3["Bucket"], Key=flag_name) 
                 logger.info("FAILED TO ACQUIRE S3 LOCK")
                 return False
 
@@ -120,7 +121,7 @@ def faasr_release(faasr_payload):
         faasr_payload: payload dict (FaaSr)
     """
     # The lock file is in the form {FaaSrLog}/{InvocationID}/{FunctionInvoke}./lock
-    lock_name = f"{faasr_payload['FaaSrLog']}/{faasr_payload['InvocationID']}/{faasr_payload['FunctionInvoke']}./lock"
+    lock_name = f"{faasr_payload['FaaSrLog']}/{faasr_payload['InvocationID']}/{faasr_payload['FunctionInvoke']}/lock"
 
     # Get the faasr logging server from payload
     logging_datastore = get_logging_server(faasr_payload)

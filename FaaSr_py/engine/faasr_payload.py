@@ -318,7 +318,8 @@ class FaaSrPayload:
 
         else:
             candidate_download_path = Path("/tmp") / candidate_path
-
+            candidate_download_path.parent.mkdir(parents=True, exist_ok=True)
+            
             # If exists in S3, download
             s3_response = s3_client.list_objects_v2(
                 Bucket=s3_log_info["Bucket"], Prefix=str(candidate_path)
@@ -330,7 +331,6 @@ class FaaSrPayload:
                     Filename=str(candidate_download_path),
                 )
 
-            candidate_download_path.parent.mkdir(parents=True, exist_ok=True)
             with candidate_download_path.open("a") as cf:
                 cf.write(str(random_number) + "\n")
 

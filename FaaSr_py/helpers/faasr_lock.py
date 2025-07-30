@@ -26,7 +26,7 @@ def faasr_rsm(faasr_payload):
     flag_content = random.randint(1, 2**31 - 1)
     flag_path = f"{faasr_payload['FaaSrLog']}/{faasr_payload['InvocationID']}/{faasr_payload['FunctionInvoke']}/flag/"
     flag_name = flag_path + str(flag_content)
-    lock_name = f"{faasr_payload['FaaSrLog']}/{faasr_payload['InvocationID']}/{faasr_payload['FunctionInvoke']}./lock"
+    lock_name = f"{faasr_payload['FaaSrLog']}/{faasr_payload['InvocationID']}/{faasr_payload['FunctionInvoke']}/lock"
 
     # set s3 client
     logging_datastore = get_logging_server(faasr_payload)

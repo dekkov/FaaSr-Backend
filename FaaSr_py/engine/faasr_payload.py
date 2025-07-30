@@ -153,11 +153,9 @@ class FaaSrPayload:
             # If the region is empty, then use defualt 'us-east-1'
             if not server_region:
                 self["DataStores"][server]["Region"] = "us-east-1"
-            if (
-                "Anonynmous" in self["DataStores"][server]
-                and len(self["DataStores"][server]["Anonymous"]) != 0
-            ):
-                # to-do: continue if anonymous is true
+                
+            if self["DataStores"][server].get("Anonymous", False):
+                # Handle anonymous access (not yet implemented)
                 print("anonymous param not implemented")
 
             if server_endpoint:
@@ -220,7 +218,7 @@ class FaaSrPayload:
             )
 
             # If there already is a log, log error and abort; otherwise, create log
-            if "Content" in check_log_folder and len(check_log_folder["Content"]) != 0:
+            if "Contents" in check_log_folder and len(check_log_folder["Contents"]) != 0:
                 err_msg = f"InvocationID already exists: {self["InvocationID"]}"
                 logger.error(err_msg)
                 sys.exit(1)
@@ -319,7 +317,7 @@ class FaaSrPayload:
         else:
             candidate_download_path = Path("/tmp") / candidate_path
             candidate_download_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             # If exists in S3, download
             s3_response = s3_client.list_objects_v2(
                 Bucket=s3_log_info["Bucket"], Prefix=str(candidate_path)

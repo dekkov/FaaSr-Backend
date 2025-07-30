@@ -54,13 +54,21 @@ def get_default_log_boto3_client(faasr_payload):
         logger.error(err_msg)
         sys.exit(1)
 
-    return boto3.client(
-        "s3",
-        aws_access_key_id=s3_log_info["AccessKey"],
-        aws_secret_access_key=s3_log_info["SecretKey"],
-        region_name=s3_log_info["Region"],
-        endpoint_url=s3_log_info["Endpoint"],
-    )
+    if s3_log_info.get("Endpoint"):
+        return boto3.client(
+            "s3",
+            aws_access_key_id=s3_log_info["AccessKey"],
+            aws_secret_access_key=s3_log_info["SecretKey"],
+            region_name=s3_log_info["Region"],
+            endpoint_url=s3_log_info["Endpoint"],
+        )
+    else:
+        return boto3.client(
+            "s3",
+            aws_access_key_id=s3_log_info["AccessKey"],
+            aws_secret_access_key=s3_log_info["SecretKey"],
+            region_name=s3_log_info["Region"],
+        )
 
 
 def flush_s3_log():

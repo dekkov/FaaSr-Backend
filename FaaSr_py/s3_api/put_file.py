@@ -77,13 +77,21 @@ def faasr_put_file(
         # Get the S3 server to put the file in
         target_s3 = faasr_payload["DataStores"][server_name]
 
-        s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=target_s3["AccessKey"],
-            aws_secret_access_key=target_s3["SecretKey"],
-            region_name=target_s3["Region"],
-            endpoint_url=target_s3["Endpoint"],
-        )
+        if target_s3.get("Endpoint"):
+            s3_client = boto3.client(
+                "s3",
+                aws_access_key_id=target_s3["AccessKey"],
+                aws_secret_access_key=target_s3["SecretKey"],
+                region_name=target_s3["Region"],
+                endpoint_url=target_s3["Endpoint"],
+            )
+        else:
+            s3_client = boto3.client(
+                "s3",
+                aws_access_key_id=target_s3["AccessKey"],
+                aws_secret_access_key=target_s3["SecretKey"],
+                region_name=target_s3["Region"]
+            )
 
         with open(local_path, "rb") as put_data:
             result = s3_client.put_object(

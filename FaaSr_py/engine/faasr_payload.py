@@ -142,10 +142,10 @@ class FaaSrPayload:
         # Iterate through all of the data stores
         for server in self["DataStores"].keys():
             # Get the endpoint and region
-            server_endpoint = self["DataStores"][server]["Endpoint"]
+            server_endpoint = self["DataStores"][server].get("Endpoint")
             server_region = self["DataStores"][server]["Region"]
             # Ensure that endpoint is a valid http address
-            if not server_endpoint.startswith("http"):
+            if server_endpoint and not server_endpoint.startswith("http"):
                 error_message = f"Invalid data store server endpoint {server}"
                 logger.error(error_message)
                 sys.exit(1)
@@ -160,13 +160,21 @@ class FaaSrPayload:
                 # to-do: continue if anonymous is true
                 print("anonymous param not implemented")
 
-            s3_client = boto3.client(
-                "s3",
-                aws_access_key_id=self["DataStores"][server]["AccessKey"],
-                aws_secret_access_key=self["DataStores"][server]["SecretKey"],
-                region_name=self["DataStores"][server]["Region"],
-                endpoint_url=self["DataStores"][server]["Endpoint"],
-            )
+            if server_endpoint:
+                s3_client = boto3.client(
+                    "s3",
+                    aws_access_key_id=self["DataStores"][server]["AccessKey"],
+                    aws_secret_access_key=self["DataStores"][server]["SecretKey"],
+                    region_name=server_region,
+                    endpoint_url=server_endpoint
+                )
+            else:
+                s3_client = boto3.client(
+                    "s3",
+                    aws_access_key_id=self["DataStores"][server]["AccessKey"],
+                    aws_secret_access_key=self["DataStores"][server]["SecretKey"],
+                    region_name=server_region
+                )
             # Use boto3 head bucket to ensure that the bucket exists and that we have acces to it
             try:
                 s3_client.head_bucket(Bucket=self["DataStores"][server]["Bucket"])

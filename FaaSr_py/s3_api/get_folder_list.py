@@ -30,13 +30,21 @@ def faasr_get_folder_list(faasr_payload, server_name="", prefix=""):
     # Get the S3 data store to get folder list from
     target_s3 = faasr_payload["DataStores"][server_name]
 
-    s3_client = boto3.client(
-        "s3",
-        aws_access_key_id=target_s3["AccessKey"],
-        aws_secret_access_key=target_s3["SecretKey"],
-        region_name=target_s3["Region"],
-        endpoint_url=target_s3["Endpoint"],
-    )
+    if target_s3.get("Endpoint"):
+        s3_client = boto3.client(
+            "s3",
+            aws_access_key_id=target_s3["AccessKey"],
+            aws_secret_access_key=target_s3["SecretKey"],
+            region_name=target_s3["Region"],
+            endpoint_url=target_s3["Endpoint"],
+        )
+    else:
+        s3_client = boto3.client(
+            "s3",
+            aws_access_key_id=target_s3["AccessKey"],
+            aws_secret_access_key=target_s3["SecretKey"],
+            region_name=target_s3["Region"],
+        )
 
     # List objects from S3 bucket
     result = s3_client.list_objects_v2(Bucket=target_s3["Bucket"], Prefix=prefix)

@@ -37,8 +37,12 @@ def faasr_get_file(
             lf.write(rf.read())
     else:
         if not server_name:
-            server_name = faasr_payload.get("DefaultDataStore", "")
-        if server_name not in faasr_payload.get("DataStores", {}):
+            if "DefaultDataStore" in faasr_payload:
+                server_name = faasr_payload["DefaultDataStore"]
+            else:
+                logger.error("No default data store")
+                raise RuntimeError("No default data store")
+        if server_name not in faasr_payload["DataStores"]:
             logger.error(f"Invalid data server name: {server_name}")
             sys.exit(1)
 

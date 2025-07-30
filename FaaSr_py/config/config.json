@@ -5,11 +5,10 @@
     "READABLE_LOGS": true,
     "SKIP_USER_FUNCTION": false,
     "USE_LOCAL_USER_FUNC": false,
-    "LOCAL_FUNCTION_PATH": "/Users/nolancc/documents/github/faasr-py-dev/faasr_py/testing/local_func.py",
+    "LOCAL_FUNCTION_PATH": "/Users/nolancc/documents/github/faasr-py-dev/faasr_py/testing/put_and_delete.py",
     "LOCAL_FUNCTION_NAME": "default_func",
     "LOCAL_FUNC_ARGS": {
-        "test": 10
     },
     "USE_LOCAL_FILE_SYSTEM": false,
-    "LOCAL_FILE_SYSTEM_DIR": "/Users/nolancc/desktop/FaaSr-py/invoke_tester"
+    "LOCAL_FILE_SYSTEM_DIR": "/Users/nolancc/desktop/faasr-py/test-faasr-py/bucket"
 }

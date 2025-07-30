@@ -86,7 +86,7 @@ class Scheduler:
 
         for rank in range(1, rank_num + 1):
             if rank_num > 1:
-                self.faasr["FunctionRank"] = rank
+                self.faasr["FunctionRank"] = rank # add functionrank to overwritten
             else:
                 if "FunctionRank" in self.faasr:
                     del self.faasr["FunctionRank"]

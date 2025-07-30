@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: FaaSr_py
+Version: 0.1.6
+Requires-Dist: setuptools==80.9.0
+Requires-Dist: six==1.16.0
+Requires-Dist: gevent
+Requires-Dist: flask==2.3.2
+Requires-Dist: awslambdaric==2.0.4
+Requires-Dist: pytest==7.4.0
+Requires-Dist: boto3==1.37.11
+Requires-Dist: requests==2.32.3
+Requires-Dist: PyYAML==6.0.2
+Requires-Dist: jsonschema==4.23.0
+Requires-Dist: fastapi==0.115.13
+Requires-Dist: uvicorn==0.35.0
+Requires-Dist: pydantic==2.11.7
+Dynamic: requires-dist

@@ -126,7 +126,7 @@ class FaaSrPayload:
 
         ignore_keys = [
             "FunctionGitRepo",
-            "FunctionList",
+            "ActionList",
             "FunctionCRANPackage",
             "FunctionGitHubPackage",
             "PyPIPackageDownloads",
@@ -198,7 +198,7 @@ class FaaSrPayload:
             self["FaaSrLog"] = "FaaSrLog"
 
         # Get path to log
-        log_folder = Path(self["FaaSrLog"]) / self["InvocationID"]
+        log_folder = Path(self["FaaSrLog"]) / Path(self["WorkflowName"]) / self["InvocationID"]
 
         if global_config.USE_LOCAL_FILE_SYSTEM:
             log_folder.mkdir(parents=True, exist_ok=True)

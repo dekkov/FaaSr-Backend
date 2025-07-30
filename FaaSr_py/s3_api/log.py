@@ -25,7 +25,10 @@ def faasr_log(faasr_payload, log_message):
         logger.error("ERROR -- log_message is empty")
         sys.exit(1)
 
-    log_folder = Path(faasr_payload["FaaSrLog"]) / faasr_payload["InvocationID"]
+    log_folder = (Path(faasr_payload["FaaSrLog"]) / 
+                  Path(faasr_payload["WorkflowName"]) / 
+                  faasr_payload["InvocationID"]
+    )
     log_path = log_folder / faasr_payload.log_file
 
     if global_config.USE_LOCAL_FILE_SYSTEM:

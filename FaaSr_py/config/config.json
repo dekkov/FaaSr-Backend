@@ -1,5 +1,5 @@
 {
-    "SKIP_SCHEMA_VALIDATE": true,
+    "SKIP_SCHEMA_VALIDATE": false,
     "SKIP_WF_VALIDATE": false,
     "SKIP_REAL_TRIGGERS": false,
     "READABLE_LOGS": true,

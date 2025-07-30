@@ -92,9 +92,9 @@ def build_adjacency_graph(payload):
 
     ranks = dict()
 
-    # Build adjacency list from FunctionList
-    for func in payload["FunctionList"].keys():
-        invoke_next = payload["FunctionList"][func]["InvokeNext"]
+    # Build adjacency list from ActionList
+    for func in payload["ActionList"].keys():
+        invoke_next = payload["ActionList"][func]["InvokeNext"]
         if isinstance(invoke_next, str):
             invoke_next = [invoke_next]
         for child in invoke_next:
@@ -128,7 +128,7 @@ def check_dag(faasr_payload):
     Returns:
         predecessors: dict -- map of function predecessors
     """
-    if faasr_payload["FunctionInvoke"] not in faasr_payload["FunctionList"]:
+    if faasr_payload["FunctionInvoke"] not in faasr_payload["ActionList"]:
         err_msg = "FunctionInvoke does not refer to a valid function"
         logger.error(err_msg)
         sys.exit(1)
@@ -146,7 +146,7 @@ def check_dag(faasr_payload):
 
     # Find initial function in the graph
     start = False
-    for func in faasr_payload["FunctionList"]:
+    for func in faasr_payload["ActionList"]:
         if len(pre[func]) == 0:
             start = True
             # This function stores the first function with no predecessors
@@ -165,7 +165,7 @@ def check_dag(faasr_payload):
 
     # Check if all of the functions have been visited by the DFS
     # If not, then there is an unreachable state in the graph
-    for func in faasr_payload["FunctionList"]:
+    for func in faasr_payload["ActionList"]:
         if func.split(".")[0] not in visited:
             logger.error(f"Unreachable state found: {func}")
             sys.exit(1)

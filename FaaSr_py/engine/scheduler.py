@@ -34,7 +34,7 @@ class Scheduler:
         """
         # Get a list of the next functions to invoke
         curr_func = self.faasr["FunctionInvoke"]
-        invoke_next = self.faasr["FunctionList"][curr_func]["InvokeNext"]
+        invoke_next = self.faasr["ActionList"][curr_func]["InvokeNext"]
         if not isinstance(invoke_next, list):
             invoke_next = [invoke_next]
 
@@ -79,7 +79,7 @@ class Scheduler:
             rank_num = 1
 
         self.faasr["FunctionInvoke"] = function
-        next_server = self.faasr["FunctionList"][function]["FaaSServer"]
+        next_server = self.faasr["ActionList"][function]["FaaSServer"]
 
         if global_config.SKIP_REAL_TRIGGERS:
             logger.info("SKIPPING REAL TRIGGERS")
@@ -138,7 +138,7 @@ class Scheduler:
         # If UseSecretStore == True, don't send secrets to next action
         # Otherwise, we should send the compute servers & data stores
         # that contain secrets via overwritten
-        if self.faasr["FunctionList"][function].get("UseSecretStore"):
+        if next_compute_server.get("UseSecretStore"):
             if "ComputeServers" in overwritten_fields:
                 del overwritten_fields["ComputeServers"]
             if "DataStores" in overwritten_fields:

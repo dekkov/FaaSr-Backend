@@ -39,8 +39,8 @@ class Executor:
         Arguments:
             action_name: str -- name of the action to run
         """
-        func_name = self.faasr["FunctionList"][action_name]["FunctionName"]
-        func_type = self.faasr["FunctionList"][action_name]["Type"]
+        func_name = self.faasr["ActionList"][action_name]["FunctionName"]
+        func_type = self.faasr["ActionList"][action_name]["Type"]
         if "PackageImports" in self.faasr:
             imports = self.faasr["PackageImports"].get(func_name)
         else:
@@ -127,7 +127,7 @@ class Executor:
             action_name: str -- name of the action to run
         """
         # install dependencies for function
-        action = self.faasr["FunctionList"][action_name]
+        action = self.faasr["ActionList"][action_name]
         faasr_func_dependancy_install(self.faasr, action)
 
         # Run function
@@ -180,7 +180,7 @@ class Executor:
         """
         user_action = self.faasr["FunctionInvoke"]
 
-        args = self.faasr["FunctionList"][user_action]["Arguments"]
+        args = self.faasr["ActionList"][user_action]["Arguments"]
         if args is None:
             return {}
         else:

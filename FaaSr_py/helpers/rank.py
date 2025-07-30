@@ -12,7 +12,7 @@ def faasr_rank(faasr_payload):
     curr_func_name = faasr_payload["FunctionInvoke"]
 
     # get current function
-    curr_func = faasr_payload["FunctionList"][curr_func_name]
+    curr_func = faasr_payload["ActionList"][curr_func_name]
 
     # define namedtuple for return type
     Rank = namedtuple("Rank", ["MaxRank", "Rank"])

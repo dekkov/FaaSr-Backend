@@ -1,16 +1,12 @@
-
 import os
 import re
 import sys
 import requests
 import tarfile
 import shutil
-import string
-import random
 import logging
 import subprocess
 import base64
-import importlib
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +26,9 @@ def faasr_get_github_clone(faasr_payload, url, base_dir=None):
     pattern = r"([^/]+/[^/]+)\.git$"
     match = re.search(pattern, url)
     if not match:
-        raise ValueError(f"Invalid GitHub URL: {url} — expected to end in owner/repo.git")
+        raise ValueError(
+            f"Invalid GitHub URL: {url} — expected to end in owner/repo.git"
+        )
 
     repo_name = match.group(1)
     repo_path = os.path.join(base_dir, repo_name)
@@ -77,7 +75,7 @@ def faasr_get_github(faasr_source, path, token=None):
     headers = {
         "Accept": "application/vnd.github.v3+json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "Authorization": f"Bearer {token}" if token else None
+        "Authorization": f"Bearer {token}" if token else None,
     }
 
     # send get request
@@ -100,7 +98,9 @@ def faasr_get_github(faasr_source, path, token=None):
 
             if path:
                 extract_path = os.path.join(root_dir, path)
-                members = [mem for mem in tar.getmembers() if mem.name.startswith(extract_path)]
+                members = [
+                    mem for mem in tar.getmembers() if mem.name.startswith(extract_path)
+                ]
                 tar.extractall(path=extract_base, members=members)
             else:
                 tar.extractall(path=extract_base)
@@ -140,14 +140,13 @@ def faasr_get_github_raw(token, path):
     # construct gh url
     username = parts[0]
     reponame = parts[1]
-    repo = f"{username}/{reponame}"
     branch = parts[2]
     filepath = "/".join(parts[3:])
     url = f"https://api.github.com/repos/{username}/{reponame}/contents/{filepath}?ref={branch}"
     headers = {
         "Accept": "application/vnd.github.v3+json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "Authorization": f"Bearer {token}" if token else None
+        "Authorization": f"Bearer {token}" if token else None,
     }
 
     response1 = requests.get(url, headers=headers)
@@ -187,18 +186,14 @@ def faasr_install_git_repos(faasr_source, func_type, gits, token):
         # download content from each path
         for path in gits:
             # if path is a repo, clone the repo
-            if (
-                path.endswith("git")
-                or path.startswith("https://")
-            ):
+            if path.endswith("git") or path.startswith("https://"):
                 logger.info(f"Cloning GitHub repo: {path}")
                 faasr_get_github_clone(faasr_source, path)
             else:
                 # if path is a python file, download
                 file_name = os.path.basename(path)
-                if (
-                    (file_name.endswith(".py") and func_type == "Python")
-                    or (file_name.endswith(".R") and func_type == "R")
+                if (file_name.endswith(".py") and func_type == "Python") or (
+                    file_name.endswith(".R") and func_type == "R"
                 ):
                     logger.info(f"Get file: {file_name}")
                     content = faasr_get_github_raw(token, path)
@@ -238,7 +233,11 @@ def faasr_install_cran(package, lib_path=None):
             lib_path = f'"{lib_path}"'
         else:
             lib_path = ".libPaths()[1]"
-        command = ["Rscript", "-e", f'install.packages("{package}", lib={lib_path}, repos="https://cloud.r-project.org")']
+        command = [
+            "Rscript",
+            "-e",
+            f'install.packages("{package}", lib={lib_path}, repos="https://cloud.r-project.org")',
+        ]
         subprocess.run(command, text=True)
 
 
@@ -248,7 +247,6 @@ def faasr_pip_gh_install(path):
     """
     parts = path.split("/")
     if len(parts) < 2:
-        err_msg = '{"faasr_pip_install":"github path should contain at least two parts"}\n'
         logger.error("GitHub path should contain at least two parts")
         sys.exit(1)
 
@@ -279,9 +277,10 @@ def faasr_install_git_packages(gh_packages, type, lib_path=None):
                     lib_path = f'"{lib_path}"'
                 else:
                     lib_path = ".libPaths()[1]"
-                command = ["Rscript",
-                           "-e", 
-                           f'withr::with_libpaths(new={lib_path}, devtools::install_github("{package}", force=TRUE))'
+                command = [
+                    "Rscript",
+                    "-e",
+                    f'withr::with_libpaths(new={lib_path}, devtools::install_github("{package}", force=TRUE))',
                 ]
                 subprocess.run(command, text=True)
 
@@ -303,7 +302,9 @@ def faasr_func_dependancy_install(faasr_source, action):
     token = os.getenv("TOKEN")
 
     if not token:
-        logger.warning("No GitHub token used. May hit rate limits when installing functions.")
+        logger.warning(
+            "No GitHub token used. May hit rate limits when installing functions."
+        )
 
     # get gh functions
     faasr_install_git_repos(faasr_source, func_type, gits, token)
@@ -325,6 +326,3 @@ def faasr_func_dependancy_install(faasr_source, action):
             gh_packages = faasr_source["FunctionGitHubPackage"].get(func_name)
             if gh_packages:
                 faasr_install_git_packages(gh_packages, func_type)
-
-
-

@@ -1,6 +1,5 @@
 import requests
 import re
-import copy
 import json
 import sys
 import logging
@@ -18,6 +17,7 @@ class Scheduler:
     """
     Handles scheduling of next functions in the DAG
     """
+
     def __init__(self, faasr: FaaSrPayload):
         if not isinstance(faasr, FaaSrPayload):
             err_msg = "initializer for Scheduler must be FaaSrPayload instance"
@@ -46,7 +46,9 @@ class Scheduler:
 
         # Ensure that function returned a value if conditionals are present
         if contains_dict(invoke_next) and return_val is None:
-            err_msg = "InvokeNext contains conditionals but function did not return a value"
+            err_msg = (
+                "InvokeNext contains conditionals but function did not return a value"
+            )
             logger.error(err_msg)
             sys.exit(1)
 
@@ -130,25 +132,22 @@ class Scheduler:
             workflow_file = function
         git_ref = next_compute_server["Branch"]
 
-        # Create copy of faasr payload
-        faasr_git = copy.deepcopy(self.faasr.get_complete_workflow())
-
         # Create payload input
-        overwritten_files = self.faasr.overwritten
+        overwritten_fields = self.faasr.overwritten
 
         # If UseSecretStore == True, don't send secrets to next action
         # Otherwise, we should send the compute servers & data stores
         # that contain secrets via overwritten
         if self.faasr["FunctionList"][function].get("UseSecretStore"):
-            if "ComputeServers" in overwritten_files:
-                del overwritten_files["ComputeServers"]
-            if "DataStores" in overwritten_files:
-                del overwritten_files["DataStores"]
+            if "ComputeServers" in overwritten_fields:
+                del overwritten_fields["ComputeServers"]
+            if "DataStores" in overwritten_fields:
+                del overwritten_fields["DataStores"]
         else:
-            overwritten_files["ComputeServers"] = self.faasr["ComputeServers"]
-            overwritten_files["DataStores"] = self.faasr["DataStores"]
+            overwritten_fields["ComputeServers"] = self.faasr["ComputeServers"]
+            overwritten_fields["DataStores"] = self.faasr["DataStores"]
 
-        json_overwritten = json.dumps(overwritten_files)
+        json_overwritten = json.dumps(overwritten_fields)
 
         inputs = {
             "OVERWRITTEN": json_overwritten,
@@ -173,7 +172,9 @@ class Scheduler:
 
         # Log response
         if response.status_code == 204:
-            succ_msg = f"GitHub Action: Successfully invoked: {self.faasr['FunctionInvoke']}"
+            succ_msg = (
+                f"GitHub Action: Successfully invoked: {self.faasr['FunctionInvoke']}"
+            )
             logger.info(succ_msg)
             faasr_log(self.faasr, succ_msg)
         elif response.status_code == 401:
@@ -201,7 +202,9 @@ class Scheduler:
                 if message:
                     err_msg = f"{message}"
                 else:
-                    err_msg = "GitHub Action: unknown error happens when invoke next function"
+                    err_msg = (
+                        "GitHub Action: unknown error happens when invoke next function"
+                    )
                 logger.error(err_msg)
                 sys.exit(1)
             else:
@@ -226,7 +229,7 @@ class Scheduler:
             region_name=next_compute_server["Region"],
         )
 
-        # Invoke lambda function 
+        # Invoke lambda function
         # to-do: lambda function should take URL of payload & overwritten fields (not payload itself)
         # as input, and secrets if "UseSecretStore" is False for next_compute_server
         try:
@@ -306,10 +309,10 @@ class Scheduler:
                 verify=ssl,
             )
         except requests.exceptions.ConnectionError:
-            logger.exception(e, stack_info=True)
+            logger.exception(stack_info=True)
             sys.exit(1)
-        except Exception as e:
-            err_msg = f"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']} -- error: {e}"
+        except Exception:
+            err_msg = f"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']}"
             logger.exception(err_msg, stack_info=True)
             sys.exit(1)
 
@@ -318,9 +321,7 @@ class Scheduler:
             logger.info(succ_msg)
             sys.exit(1)
         else:
-            err_msg = (
-                f"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']} -- status code: {response.status_code}"
-            )
+            err_msg = f"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']} -- status code: {response.status_code}"
             logger.error(err_msg)
             sys.exit(1)
 

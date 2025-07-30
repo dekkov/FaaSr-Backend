@@ -5,7 +5,7 @@ def faasr_rank(faasr_payload):
     """
     Returns the rank # and total rank of the current function
 
-    Returns: 
+    Returns:
         namedtuple with elements MaxRank and Rank | None if rank is not set
     """
     # get current function name

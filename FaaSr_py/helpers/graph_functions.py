@@ -1,6 +1,5 @@
 import json
 import sys
-import re
 import logging
 
 from pathlib import Path
@@ -99,6 +98,7 @@ def build_adjacency_graph(payload):
         if isinstance(invoke_next, str):
             invoke_next = [invoke_next]
         for child in invoke_next:
+
             def process_action(action):
                 action_name, action_rank = extract_rank(action)
                 if action_name in ranks and ranks[action_name] > 1:
@@ -125,7 +125,7 @@ def check_dag(faasr_payload):
 
     Arguments:
         payload: FaaSr payload dict
-    Returns:  
+    Returns:
         predecessors: dict -- map of function predecessors
     """
     if faasr_payload["FunctionInvoke"] not in faasr_payload["FunctionList"]:
@@ -142,7 +142,7 @@ def check_dag(faasr_payload):
     visited = set()
 
     # Initialize predecessor list
-    pre = predecessors_list(adj_graph)        
+    pre = predecessors_list(adj_graph)
 
     # Find initial function in the graph
     start = False
@@ -209,5 +209,3 @@ def extract_rank(str):
     rank = int(parts[1][:-1])
     action_name = parts[0]
     return (action_name, rank)
-
-

@@ -12,6 +12,7 @@ def local_wrap(function):
     """
     Wraps stdout of debug function
     """
+
     def formatting(*args, **kwargs):
         print("-----------------LOCAL FUNC OUTPUT-----------------")
         print(f"ARGS: {args}")
@@ -19,6 +20,7 @@ def local_wrap(function):
         result = function(*args, **kwargs)
         print("---------------------------------------------------")
         return result
+
     return formatting
 
 
@@ -96,7 +98,9 @@ def faasr_import_function_walk(func_name, directory="."):
                             return obj
 
                 except Exception as e:
-                    logger.error(f"Python file {f} has following source error: {str(e)}")
+                    logger.error(
+                        f"Python file {f} has following source error: {str(e)}"
+                    )
                     sys.exit(1)
     return None
 

@@ -1,7 +1,5 @@
 import json
-import uuid
 import logging
-import importlib
 from pathlib import Path
 
 from FaaSr_py.config.s3_log_handler import S3LogHandler
@@ -14,7 +12,9 @@ class Config:
     """
     Stores FaaSr settings
     """
+
     _config = None
+
     def __init__(self, config_path):
         if Config._config is None:
             self._config_file = config_path
@@ -36,7 +36,7 @@ class Config:
             Config._config = self
         else:
             raise RuntimeError("cannot initialize Config outside of debug_config.py")
-        
+
     def _read_config(self, key):
         """
         Read config entry from config file
@@ -75,24 +75,29 @@ class Config:
         Start s3 logger
         """
         if not faasr_payload:
-            raise RuntimeError("S3 logger cannot be started if faasr_payload is not set")
+            raise RuntimeError(
+                "S3 logger cannot be started if faasr_payload is not set"
+            )
         logger = logging.getLogger()
 
         # Initialize S3 log handler
-        s3_log_handler = S3LogHandler(faasr_payload=faasr_payload, level=level, start_time=start_time)
+        s3_log_handler = S3LogHandler(
+            faasr_payload=faasr_payload, level=level, start_time=start_time
+        )
 
         # Filter out 3rd party packages
         s3_log_handler.addFilter(FaaSrFilter())
 
         # Add handler
         logger.addHandler(s3_log_handler)
-    
+
     """
     Getter and setter methods do not update internal member variables.
     Rather, they read to and write to the config.json file specified
     by config_file, ensuring that state remains coherent
     between processes using the config
     """
+
     @property
     def SKIP_SCHEMA_VALIDATE(self):
         return self._read_config("SKIP_SCHEMA_VALIDATE")

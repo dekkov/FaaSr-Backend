@@ -25,7 +25,7 @@ valid_functions = {
     "faasr_delete_file",
     "faasr_get_folder_list",
     "faasr_log",
-    "faasr_rank"
+    "faasr_rank",
 }
 
 
@@ -56,7 +56,7 @@ class Exit(BaseModel):
 
 
 def register_request_handler(faasr_payload):
-    """"
+    """ "
     Setup FastAPI request handlers for FaaSr functions
 
     Arguments:
@@ -73,7 +73,7 @@ def register_request_handler(faasr_payload):
         """
         nonlocal error
         logger.info(f"Processing request: {request.ProcedureID}")
-        
+
         args = request.Arguments or {}
         return_obj = Response(Success=True, Data={})
         try:
@@ -97,7 +97,9 @@ def register_request_handler(faasr_payload):
                         faasr_payload=faasr_payload, **args
                     )
                 case _:
-                    logging.error(f"{request.ProcedureID} is not a valid FaaSr function call")
+                    logging.error(
+                        f"{request.ProcedureID} is not a valid FaaSr function call"
+                    )
                     error = True
                     sys.exit(1)
         except Exception as e:
@@ -170,7 +172,7 @@ def wait_for_server_start(port):
 def run_server(faasr_payload, port, start_time):
     """
     Starts a FastAPI server to handle FaaSr requests
-    
+
     Arguments:
         faasr_payload: FaaSr payload dict
         port: int -- port to run the server on

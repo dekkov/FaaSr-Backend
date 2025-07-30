@@ -1,5 +1,5 @@
 import boto3
-import re  
+import re
 import sys
 import logging
 
@@ -10,7 +10,14 @@ from FaaSr_py.config.debug_config import global_config
 logger = logging.getLogger(__name__)
 
 
-def faasr_put_file(faasr_payload, local_file, remote_file, server_name="", local_folder=".", remote_folder="."):
+def faasr_put_file(
+    faasr_payload,
+    local_file,
+    remote_file,
+    server_name="",
+    local_folder=".",
+    remote_folder=".",
+):
     """
     Uploads a file to S3 bucket
 
@@ -55,7 +62,6 @@ def faasr_put_file(faasr_payload, local_file, remote_file, server_name="", local
         path_to_put = Path(global_config.LOCAL_FILE_SYSTEM_DIR) / remote_path
         path_to_put.parent.mkdir(parents=True, exist_ok=True)
         with open(local_path, "r") as rf:
-            logger.info(f"writing {local_file} to {remote_path} inside of local bucket")
             with open(path_to_put, "w") as wf:
                 wf.write(rf.read())
     else:
@@ -85,4 +91,3 @@ def faasr_put_file(faasr_payload, local_file, remote_file, server_name="", local
             )
 
     # to-do: error if fail
-

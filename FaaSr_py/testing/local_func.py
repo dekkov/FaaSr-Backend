@@ -5,7 +5,7 @@ from pathlib import Path
 
 def default_func(test=32):
     """
-    Example function ran when USE_LOCAL_USER_FUNC == True 
+    Example function ran when USE_LOCAL_USER_FUNC == True
     """
     num = random2.randint(1, 10)
     print(f"rand 1-10: {num}")
@@ -22,7 +22,7 @@ def default_func(test=32):
 
     local_file = Path("tmp") / filename
     local_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(local_file, 'w') as f:
+    with open(local_file, "w") as f:
         f.write("test file content")
     faasr_put_file(local_file=local_file, remote_file=filename, remote_folder=folder)
 
@@ -30,11 +30,16 @@ def default_func(test=32):
     print(faasr_get_folder_list(prefix=folder))
 
     # test get file
-    faasr_get_file(local_file="redownloaded.txt",local_folder = "/tmp/", remote_file=filename, remote_folder=folder)
-    with open("/tmp/redownloaded.txt", 'r') as f:
+    faasr_get_file(
+        local_file="redownloaded.txt",
+        local_folder="/tmp/",
+        remote_file=filename,
+        remote_folder=folder,
+    )
+    with open("/tmp/redownloaded.txt", "r") as f:
         print(f"redownloaded content: {f.readline()}")
 
-    # test delete file    
+    # test delete file
     faasr_delete_file(remote_file=filename, remote_folder=folder)
     print(faasr_get_folder_list(prefix=folder))
 

@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
@@ -11,6 +11,7 @@ class S3LogSender:
     """
     Uploads dev logs to S3
     """
+
     _log_sender = None
 
     def __new__(cls, *args, **kwargs):
@@ -19,7 +20,7 @@ class S3LogSender:
         """
         if cls._log_sender is None:
             cls._log_sender = super(S3LogSender, cls).__new__(cls)
-            cls._log_sender._initialized = False 
+            cls._log_sender._initialized = False
         return cls._log_sender
 
     def __init__(self, timestamp, faasr_payload):
@@ -44,7 +45,7 @@ class S3LogSender:
 
     @faasr_payload.setter
     def faasr_payload(self, faasr_payload):
-        """  
+        """
         Sets the faasr_payload for the logger
         """
         self._faasr_payload = faasr_payload

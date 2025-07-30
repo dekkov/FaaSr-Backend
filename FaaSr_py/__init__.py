@@ -5,12 +5,15 @@ from .s3_api import faasr_log
 from .config.logger_classes import JsonFormatter, FaaSrFilter
 from .config.debug_config import global_config
 from .config.s3_log_sender import S3LogSender
-from .helpers.faasr_start_invoke_helper import faasr_func_dependancy_install, faasr_get_github_raw
+from .helpers.faasr_start_invoke_helper import (
+    faasr_func_dependancy_install,
+    faasr_get_github_raw,
+)
 
 
 import sys
 import logging
-import json 
+import json
 
 
 logger = logging.getLogger()
@@ -22,7 +25,7 @@ logger.handlers.clear()
 # add a new handler to log to stdout -- [LEVEL] [FILENAME] [TIMESTAMP] [MESSAGE]
 stdout_handler = logging.StreamHandler(sys.stdout)
 if global_config.READABLE_LOGS:
-    formatter = logging.Formatter('[%(levelname)s] [%(filename)s] %(message)s')
+    formatter = logging.Formatter("[%(levelname)s] [%(filename)s] %(message)s")
 else:
     formatter = JsonFormatter()
 stdout_handler.setFormatter(formatter)

@@ -62,6 +62,7 @@ def get_default_log_boto3_client(faasr_payload):
         endpoint_url=s3_log_info["Endpoint"],
     )
 
+
 def flush_s3_log():
     log_sender = S3LogSender.get_log_sender()
     log_sender.flush_log()

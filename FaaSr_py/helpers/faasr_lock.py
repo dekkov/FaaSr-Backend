@@ -3,7 +3,10 @@ import time
 import logging
 import sys
 
-from FaaSr_py.helpers.s3_helper_functions import get_default_log_boto3_client, get_logging_server
+from FaaSr_py.helpers.s3_helper_functions import (
+    get_default_log_boto3_client,
+    get_logging_server,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -15,7 +18,7 @@ def faasr_rsm(faasr_payload):
 
     Arguments:
         faasr_payload: payload dict (FaaSr)
-    
+
     Returns:
         bool: True if lock acquired (lock file placed in s3), false otherwise
     """
@@ -143,7 +146,9 @@ def anyone_else_interested(boto3_client, target_s3, flag_path, flag_name):
     """
 
     # Get a list of flag names
-    check_pool = boto3_client.list_objects_v2(Bucket=target_s3["Bucket"], Prefix=flag_path)
+    check_pool = boto3_client.list_objects_v2(
+        Bucket=target_s3["Bucket"], Prefix=flag_path
+    )
 
     pool = [x["Key"] for x in check_pool["Contents"]]
     # If our flag is in S3 and is the only one, return false

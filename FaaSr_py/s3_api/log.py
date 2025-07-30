@@ -1,11 +1,13 @@
-import boto3
 import os
 import sys
 import logging
 
 from pathlib import Path
 from FaaSr_py.config.debug_config import global_config
-from FaaSr_py.helpers.s3_helper_functions import get_logging_server, get_default_log_boto3_client
+from FaaSr_py.helpers.s3_helper_functions import (
+    get_logging_server,
+    get_default_log_boto3_client,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -23,17 +25,16 @@ def faasr_log(faasr_payload, log_message):
         logger.error("ERROR -- log_message is empty")
         sys.exit(1)
 
-    log_folder = Path(faasr_payload["FaaSrLog"]) / faasr_payload['InvocationID']
+    log_folder = Path(faasr_payload["FaaSrLog"]) / faasr_payload["InvocationID"]
     log_path = log_folder / faasr_payload.log_file
 
     if global_config.USE_LOCAL_FILE_SYSTEM:
         # make log dir
         local_log_path = Path(global_config.LOCAL_FILE_SYSTEM_DIR / log_path)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
+        local_log_path.parent.mkdir(parents=True, exist_ok=True)
 
         # write log
         logs = f"{log_message}\n"
-        logger.info(f"writing {log_message} to {local_log_path}")
         with open(local_log_path, "a") as f:
             f.write(logs)
     else:
@@ -52,9 +53,7 @@ def faasr_log(faasr_payload, log_message):
         bucket = faasr_payload["DataStores"][log_server_name]["Bucket"]
 
         # Check if the log file already exists
-        check_log_file = s3_client.list_objects_v2(
-            Bucket=bucket, Prefix=str(log_path)
-        )
+        check_log_file = s3_client.list_objects_v2(Bucket=bucket, Prefix=str(log_path))
 
         # Download the log if it exists
         if "Contents" in check_log_file and len(check_log_file["Contents"]) != 0:

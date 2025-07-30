@@ -1,6 +1,6 @@
 library("jsonlite")
 library("httr")
-source("http_wrappers.R")
+source("r_client_stubs.R")
 source("r_func_helper.R")
 
 args <- commandArgs(trailingOnly = TRUE)

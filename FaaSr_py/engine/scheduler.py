@@ -176,7 +176,6 @@ class Scheduler:
                 f"GitHub Action: Successfully invoked: {self.faasr['FunctionInvoke']}"
             )
             logger.info(succ_msg)
-            faasr_log(self.faasr, succ_msg)
         elif response.status_code == 401:
             err_msg = "GitHub Action: Authentication failed, check the credentials"
             logger.error(err_msg)

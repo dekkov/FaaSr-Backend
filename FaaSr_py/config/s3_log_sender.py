@@ -1,8 +1,6 @@
 import logging
 import sys
-
 from datetime import datetime
-
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +73,6 @@ class S3LogSender:
         full_log = "\n".join(self._log_buffer)
         self._log_buffer = []
 
-        # Lazily import faasr_log to avoid circular imports
         from FaaSr_py.s3_api.log import faasr_log
 
         # Upload the log to S3

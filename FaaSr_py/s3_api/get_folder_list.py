@@ -1,7 +1,7 @@
-import boto3
-import sys
 import logging
+import sys
 
+import boto3
 
 logger = logging.getLogger(__name__)
 

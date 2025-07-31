@@ -1,11 +1,11 @@
-import boto3
 import logging
 import re
 import sys
-
 from pathlib import Path
-from FaaSr_py.config.debug_config import global_config
 
+import boto3
+
+from FaaSr_py.config.debug_config import global_config
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def faasr_get_file(
             sys.exit(1)
 
         target_s3 = faasr_payload["DataStores"][server_name]
-        
+
         if target_s3.get("Endpoint"):
             s3_client = boto3.client(
                 "s3",

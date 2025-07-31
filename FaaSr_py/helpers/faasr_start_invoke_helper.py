@@ -1,13 +1,15 @@
+import base64
+import logging
 import os
 import re
-import sys
-import requests
-import tarfile
 import shutil
-import logging
 import subprocess
-import base64
+import sys
+import tarfile
 
+import requests
+
+from FaaSr_py.config.debug_config import global_config
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +87,7 @@ def faasr_get_github(faasr_source, path, token=None):
         stream=True,
     )
 
-    # if the response code is 200 (successful), then write the content of the repo to the tarball file
+    # if the response code is 200 (successful), then write repo to tarball file
     if response.status_code == 200:
         with open(tar_name, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
@@ -152,7 +154,7 @@ def faasr_get_github_raw(token, path):
     response1 = requests.get(url, headers=headers)
 
     if response1.status_code == 200:
-        logger.info(f"Successfully fetched raw file from GitHub: {path}")
+        logger.debug(f"Successfully fetched raw file from GitHub: {path}")
         data = response1.json()
         content = data.get("content", "")
         decoded_bytes = base64.b64decode(content)
@@ -280,7 +282,11 @@ def faasr_install_git_packages(gh_packages, type, lib_path=None):
                 command = [
                     "Rscript",
                     "-e",
-                    f'withr::with_libpaths(new={lib_path}, devtools::install_github("{package}", force=TRUE))',
+                    (
+                        f"withr::with_libpaths("
+                        f'new="{lib_path}", '
+                        f'code=quote(devtools::install_github("{package}", force=TRUE)))'
+                    ),
                 ]
                 subprocess.run(command, text=True)
 
@@ -295,9 +301,6 @@ def faasr_func_dependancy_install(faasr_source, action):
     """
     func_type, func_name = action["Type"], action["FunctionName"]
 
-    # get files from git repo
-    gits = faasr_source["FunctionGitRepo"].get(func_name)
-
     # get token if present
     token = os.getenv("TOKEN")
 
@@ -306,8 +309,12 @@ def faasr_func_dependancy_install(faasr_source, action):
             "No GitHub token used. May hit rate limits when installing functions."
         )
 
-    # get gh functions
-    faasr_install_git_repos(faasr_source, func_type, gits, token)
+    if not global_config.USE_LOCAL_USER_FUNC:
+        # get files from git repo
+        gits = faasr_source["FunctionGitRepo"].get(func_name)
+
+        # get gh functions
+        faasr_install_git_repos(faasr_source, func_type, gits, token)
 
     if "PyPIPackageDownloads" in faasr_source and func_type == "Python":
         pypi_packages = faasr_source["PyPIPackageDownloads"].get(func_name)

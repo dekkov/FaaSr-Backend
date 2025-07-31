@@ -2,7 +2,6 @@ import logging
 
 from FaaSr_py.config.s3_log_sender import S3LogSender
 
-
 logger = logging.getLogger(__name__)
 
 

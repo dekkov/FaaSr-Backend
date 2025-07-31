@@ -1,19 +1,21 @@
-import os
-import sys
 import json
 import logging
-import requests
+import os
 import subprocess
+import sys
 from multiprocessing import Process
 from pathlib import Path
 
-from FaaSr_py.engine.faasr_payload import FaaSrPayload
+import requests
+
 from FaaSr_py.config.debug_config import global_config
-from FaaSr_py.helpers.s3_helper_functions import flush_s3_log, get_invocation_folder
+from FaaSr_py.engine.faasr_payload import FaaSrPayload
+from FaaSr_py.helpers.faasr_start_invoke_helper import \
+    faasr_func_dependancy_install
+from FaaSr_py.helpers.s3_helper_functions import (flush_s3_log,
+                                                  get_invocation_folder)
 from FaaSr_py.s3_api import faasr_put_file
 from FaaSr_py.server.faasr_server import run_server, wait_for_server_start
-from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_func_dependancy_install
-
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +53,8 @@ class Executor:
             try:
                 if func_type == "Python":
                     # entry script for py function
-                    from FaaSr_py.client.py_user_func_entry import run_py_function
+                    from FaaSr_py.client.py_user_func_entry import \
+                        run_py_function
 
                     # run user func as seperate process
                     py_func = Process(
@@ -127,8 +130,10 @@ class Executor:
             action_name: str -- name of the action to run
         """
         # install dependencies for function
+        logger.debug("Starting dependency install")
         action = self.faasr["ActionList"][action_name]
         faasr_func_dependancy_install(self.faasr, action)
+        logger.debug("Finished installing dependencies")
 
         # Run function
         try:
@@ -158,6 +163,7 @@ class Executor:
         flush_s3_log()
         self.server = Process(target=run_server, args=(self.faasr, port, start_time))
         self.server.start()
+        logger.debug("Polling localhost")
         wait_for_server_start(port)
 
     def terminate_server(self):

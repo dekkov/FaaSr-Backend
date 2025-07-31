@@ -1,16 +1,12 @@
+import logging
 import os
 import sys
-import logging
-
 from pathlib import Path
-from FaaSr_py.config.debug_config import global_config
-from FaaSr_py.helpers.s3_helper_functions import (
-    get_logging_server,
-    get_default_log_boto3_client,
-    get_invocation_folder
-    
-)
 
+from FaaSr_py.config.debug_config import global_config
+from FaaSr_py.helpers.s3_helper_functions import (get_default_log_boto3_client,
+                                                  get_invocation_folder,
+                                                  get_logging_server)
 
 logger = logging.getLogger(__name__)
 

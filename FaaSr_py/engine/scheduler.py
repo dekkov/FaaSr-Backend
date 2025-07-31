@@ -1,14 +1,13 @@
-import requests
-import re
 import json
-import sys
 import logging
+import re
+import sys
+
 import boto3
+import requests
 
-from FaaSr_py.engine.faasr_payload import FaaSrPayload
 from FaaSr_py.config.debug_config import global_config
-from FaaSr_py.s3_api import faasr_log
-
+from FaaSr_py.engine.faasr_payload import FaaSrPayload
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,6 @@ class Scheduler:
     """
     Handles scheduling of next functions in the DAG
     """
-
     def __init__(self, faasr: FaaSrPayload):
         if not isinstance(faasr, FaaSrPayload):
             err_msg = "initializer for Scheduler must be FaaSrPayload instance"
@@ -27,7 +25,7 @@ class Scheduler:
 
     def trigger(self, return_val=None):
         """
-        Triggers the next actions in the DAG
+        Batch trigger for all the next actions in the DAG
 
         Arguments:
             return_val: any -- value returned by the user function, used for conditionals
@@ -86,7 +84,7 @@ class Scheduler:
 
         for rank in range(1, rank_num + 1):
             if rank_num > 1:
-                self.faasr["FunctionRank"] = rank # add functionrank to overwritten
+                self.faasr["FunctionRank"] = rank  # add functionrank to overwritten
             else:
                 if "FunctionRank" in self.faasr:
                     del self.faasr["FunctionRank"]
@@ -229,8 +227,9 @@ class Scheduler:
         )
 
         # Invoke lambda function
-        # to-do: lambda function should take URL of payload & overwritten fields (not payload itself)
-        # as input, and secrets if "UseSecretStore" is False for next_compute_server
+        # to-do: lambda function should take URL of payload &
+        # overwritten fields (not payload itself) as input,
+        # and pass secrets if "UseSecretStore" is False for next_compute_server
         try:
             response = lambda_client.invoke(
                 FunctionName=function,
@@ -251,7 +250,7 @@ class Scheduler:
                 )
                 logger.error(err_msg)
             except Exception:
-                err_msg = f"Error invoking function: {self.faasr['FunctionInvoke']} -- no response from AWS"
+                err_msg = f"Error invoking function: {self.faasr['FunctionInvoke']}"
                 logger.exception(err_msg, stack_info=True)
             sys.exit(1)
 
@@ -287,7 +286,10 @@ class Scheduler:
             endpoint = f"https://{endpoint}"
 
         # Create url for POST
-        url = f"{endpoint}/api/v1/namespaces/{namespace}/actions/{actionname}?blocking=false&result=false"
+        url = (
+            f"{endpoint}/api/v1/namespaces/{namespace}/actions/"
+            f"{actionname}?blocking=false&result=false"
+        )
 
         # Create headers for POST
         headers = {"accept": "application/json", "Content-Type": "application/json"}
@@ -320,7 +322,10 @@ class Scheduler:
             logger.info(succ_msg)
             sys.exit(1)
         else:
-            err_msg = f"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']} -- status code: {response.status_code}"
+            err_msg = (
+                f"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']}: "
+                f"status code: {response.status_code}"
+            )
             logger.error(err_msg)
             sys.exit(1)
 

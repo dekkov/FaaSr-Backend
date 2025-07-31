@@ -1,16 +1,12 @@
-import random
-import time
 import logging
+import random
 import sys
-
+import time
 from pathlib import Path
 
-from FaaSr_py.helpers.s3_helper_functions import (
-    get_default_log_boto3_client,
-    get_logging_server,
-    get_invocation_folder,
-)
-
+from FaaSr_py.helpers.s3_helper_functions import (get_default_log_boto3_client,
+                                                  get_invocation_folder,
+                                                  get_logging_server)
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +24,9 @@ def faasr_rsm(faasr_payload):
     # set env for flag and lock
     flag_content = random.randint(1, 2**31 - 1)
     invocation_folder = get_invocation_folder(faasr_payload)
-    flag_path = invocation_folder / Path(faasr_payload['FunctionInvoke']) / "flag"
+    flag_path = invocation_folder / Path(faasr_payload["FunctionInvoke"]) / "flag"
     flag_name = flag_path / str(flag_content)
-    lock_name = invocation_folder / Path(faasr_payload['FunctionInvoke']) / "lock"
+    lock_name = invocation_folder / Path(faasr_payload["FunctionInvoke"]) / "lock"
 
     # set s3 client
     logging_datastore = get_logging_server(faasr_payload)
@@ -71,12 +67,14 @@ def faasr_rsm(faasr_payload):
             )
             if "Contents" not in check_lock or len(check_lock["Contents"]) == 0:
                 s3_client.put_object(
-                    Bucket=target_s3["Bucket"], Key=str(lock_name), Body=str(flag_content)
+                    Bucket=target_s3["Bucket"],
+                    Key=str(lock_name),
+                    Body=str(flag_content),
                 )
                 s3_client.delete_object(Bucket=target_s3["Bucket"], Key=str(flag_name))
                 return True
             else:
-                s3_client.delete_object(Bucket=target_s3["Bucket"], Key=str(flag_name)) 
+                s3_client.delete_object(Bucket=target_s3["Bucket"], Key=str(flag_name))
                 logger.info("FAILED TO ACQUIRE S3 LOCK")
                 return False
 
@@ -126,7 +124,7 @@ def faasr_release(faasr_payload):
     """
     # The lock file is in the form {FaaSrLog}/{InvocationID}/{FunctionInvoke}/lock
     invocation_folder = get_invocation_folder(faasr_payload)
-    lock_name = invocation_folder / Path(faasr_payload['FunctionInvoke']) / "lock"
+    lock_name = invocation_folder / Path(faasr_payload["FunctionInvoke"]) / "lock"
 
     # Get the faasr logging server from payload
     logging_datastore = get_logging_server(faasr_payload)

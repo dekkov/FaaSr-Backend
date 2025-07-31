@@ -1,9 +1,10 @@
-import re
-import boto3
 import logging
+import re
 import sys
-
 from pathlib import Path
+
+import boto3
+
 from FaaSr_py.config.debug_config import global_config
 
 logger = logging.getLogger(__name__)

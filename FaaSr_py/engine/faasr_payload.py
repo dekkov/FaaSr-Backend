@@ -1,23 +1,21 @@
+import json
+import logging
 import os
+import random
 import sys
 import uuid
-import boto3
-import logging
-import random
-import json
-
 from pathlib import Path
-from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_get_github_raw
+
+import boto3
+
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.helpers.faasr_lock import faasr_acquire, faasr_release
+from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_get_github_raw
 from FaaSr_py.helpers.graph_functions import check_dag, validate_json
-from FaaSr_py.helpers.s3_helper_functions import (
-    validate_uuid,
-    get_default_log_boto3_client,
-    get_logging_server,
-    get_invocation_folder,
-)
-
+from FaaSr_py.helpers.s3_helper_functions import (get_default_log_boto3_client,
+                                                  get_invocation_folder,
+                                                  get_logging_server,
+                                                  validate_uuid)
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +26,11 @@ class FaaSrPayload:
     - The URL points to a GitHub file containing the workflow JSON.
     - Methods to validate the workflow, replace secrets, check S3 data stores, and init log.
 
-    Top level changes (e.g. faasr_obj["FunctionInvoke"] = some_func) are tracked in self.overwritten.
-    The scheduler will propgates these changes to the next functions in the workflow
+    Top level changes (e.g. faasr_obj["FunctionInvoke"] = some_func)
+    are tracked in self.overwritten and the scheduler will
+    propgates these changes to the next functions in the workflow
     """
+
     def __init__(self, url, overwritten=None, token=None):
         # without PAT, larger workflows run the risk
         # of hitting rate limits hen fetching payload
@@ -44,6 +44,7 @@ class FaaSrPayload:
 
         self.url = url
 
+        logger.debug("Fetching workflow from GitHub URL: {url}")
         # fetch payload from gh
         raw_payload = faasr_get_github_raw(token=token, path=url)
         self._base_workflow = json.loads(raw_payload)
@@ -60,7 +61,6 @@ class FaaSrPayload:
             self.log_file = f"{self["FunctionInvoke"]}({self["FunctionRank"]}).txt"
         else:
             self.log_file = f"{self["FunctionInvoke"]}.txt"
-        logger.debug(f"Payload initialized with URL: {self.url}")
 
     def __getitem__(self, key):
         if key in self._overwritten:
@@ -106,7 +106,7 @@ class FaaSrPayload:
 
     def faasr_replace_values(self, secrets):
         """
-        Replaces filler secrets in a payload with real credentials 
+        Replaces filler secrets in a payload with real credentials
         (writes result to overwritten data)
 
         Arguments:
@@ -154,7 +154,7 @@ class FaaSrPayload:
             # If the region is empty, then use defualt 'us-east-1'
             if not server_region:
                 self["DataStores"][server]["Region"] = "us-east-1"
-                
+
             if self["DataStores"][server].get("Anonymous", False):
                 # Handle anonymous access (not yet implemented)
                 print("anonymous param not implemented")
@@ -165,14 +165,14 @@ class FaaSrPayload:
                     aws_access_key_id=self["DataStores"][server]["AccessKey"],
                     aws_secret_access_key=self["DataStores"][server]["SecretKey"],
                     region_name=server_region,
-                    endpoint_url=server_endpoint
+                    endpoint_url=server_endpoint,
                 )
             else:
                 s3_client = boto3.client(
                     "s3",
                     aws_access_key_id=self["DataStores"][server]["AccessKey"],
                     aws_secret_access_key=self["DataStores"][server]["SecretKey"],
-                    region_name=server_region
+                    region_name=server_region,
                 )
             # Use boto3 head bucket to ensure that the bucket exists and that we have acces to it
             try:
@@ -186,6 +186,8 @@ class FaaSrPayload:
         """
         Initializes a faasr log folder if one has not already been created
         """
+        logger.debug("Initializing log folder")
+
         # Create invocation ID if one is not already present
         if not self["InvocationID"]:
             if not validate_uuid(self["InvocationID"]):
@@ -219,7 +221,10 @@ class FaaSrPayload:
             )
 
             # If there already is a log, log error and abort; otherwise, create log
-            if "Contents" in check_log_folder and len(check_log_folder["Contents"]) != 0:
+            if (
+                "Contents" in check_log_folder
+                and len(check_log_folder["Contents"]) != 0
+            ):
                 err_msg = f"InvocationID already exists: {self["InvocationID"]}"
                 logger.error(err_msg)
                 sys.exit(1)
@@ -242,7 +247,7 @@ class FaaSrPayload:
                     logger.error(
                         f"Missing .done file for predecessor: {func} — aborting."
                     )
-                    sys.exit(1)
+                    sys.exit(0)
 
             # Check candidate set
             self.check_candidate_set(id_folder)
@@ -254,7 +259,7 @@ class FaaSrPayload:
             s3_client = get_default_log_boto3_client(self)
 
             # First, we check if all of the other predecessor actions are done
-            # To do this, we check a file called func.done in S3 
+            # To do this, we check a file called func.done in S3
             # and see if all of the other actions have written that they are "done"
             # If all predecessor's are not finished, then this action aborts
             s3_list_object_response = s3_client.list_objects_v2(
@@ -278,7 +283,7 @@ class FaaSrPayload:
                     logger.error(
                         f"Missing .done file for predecessor: {func} — aborting."
                     )
-                    sys.exit(1)
+                    sys.exit(0)
 
             # Check candidate set
             self.check_candidate_set(id_folder, s3_log_info, s3_client)
@@ -314,7 +319,6 @@ class FaaSrPayload:
                 cf.write(str(random_number) + "\n")
 
             final_candidate_path = candidate_full_path
-
         else:
             candidate_download_path = Path("/tmp") / candidate_path
             candidate_download_path.parent.mkdir(parents=True, exist_ok=True)
@@ -360,23 +364,28 @@ class FaaSrPayload:
 
         if random_number != first_line:
             logger.error("Not the last trigger invoked — random number does not match")
-            sys.exit(1)
+            sys.exit(0)
 
     def start(self):
         # Verifies that the faasr payload is a DAG, meaning that there is no cycles
-        # If the payload is a DAG, then this function returns a predecessor list for the workflow
+        # If the payload is a DAG, then
+        # this function returns a predecessor list for the workflow
         # If the payload is not a DAG, then the action aborts
         pre = check_dag(self)
 
-        # Verfies the validity of S3 data stores, checking the server status and ensuring that the specified bucket exists
-        # If any of the S3 endpoints are invalid or any data store server are unreachable, the action aborts
+        # Verfies the validity of S3 data stores,
+        # checking the server status and ensuring that the specified bucket exists
+        # If any of the S3 endpoints are invalid
+        # or any data store server are unreachable, the action aborts
         self.s3_check()
 
         # Initialize log if this is the first action in the workflow
         if len(pre) == 0:
             self.init_log_folder()
 
-        # If there are more than 1 predecessor, then only the final action invoked will sucessfully run
-        # This function validates that the current action is the last invocation; otherwise, it aborts
+        # If there are more than 1 predecessor,
+        # then only the final action invoked will sucessfully run
+        # This function validates that the current action
+        # is the last invocation; otherwise, it aborts
         if len(pre) > 1:
             self.abort_on_multiple_invocations(pre)

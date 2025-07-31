@@ -1,11 +1,11 @@
-import boto3
+import logging
 import re
 import sys
-import logging
-
 from pathlib import Path
-from FaaSr_py.config.debug_config import global_config
 
+import boto3
+
+from FaaSr_py.config.debug_config import global_config
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,8 @@ def faasr_put_file(
     # Path for remote file
     remote_path = Path(remote_folder) / remote_file
 
-    # If the local file exists in the current working directory, then set local_path to the name of the file
+    # If the local file exists in the current working directory,
+    # then set local_path to the name of the file
     # Otherwise, construct valid path to the file
     local_file_path = Path(local_file)
 
@@ -90,7 +91,7 @@ def faasr_put_file(
                 "s3",
                 aws_access_key_id=target_s3["AccessKey"],
                 aws_secret_access_key=target_s3["SecretKey"],
-                region_name=target_s3["Region"]
+                region_name=target_s3["Region"],
             )
 
         with open(local_path, "rb") as put_data:

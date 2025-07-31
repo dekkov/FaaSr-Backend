@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import random2
 import uuid6
-from pathlib import Path
 
 
 def default_func(test=32):

@@ -2,8 +2,8 @@ import json
 import logging
 from pathlib import Path
 
-from FaaSr_py.config.s3_log_handler import S3LogHandler
 from FaaSr_py.config.logger_classes import FaaSrFilter
+from FaaSr_py.config.s3_log_handler import S3LogHandler
 
 logger = logging.getLogger(__name__)
 

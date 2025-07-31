@@ -1,12 +1,11 @@
-import uuid
-import sys
-import boto3
 import logging
-
+import sys
+import uuid
 from pathlib import Path
 
-from FaaSr_py.config.s3_log_sender import S3LogSender
+import boto3
 
+from FaaSr_py.config.s3_log_sender import S3LogSender
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +78,8 @@ def flush_s3_log():
 
 
 def get_invocation_folder(faasr_payload):
-    return (Path(faasr_payload["FaaSrLog"]) / 
-            Path(faasr_payload["WorkflowName"]) / 
-            faasr_payload["InvocationID"]
+    return (
+        Path(faasr_payload["FaaSrLog"])
+        / Path(faasr_payload["WorkflowName"])
+        / faasr_payload["InvocationID"]
     )

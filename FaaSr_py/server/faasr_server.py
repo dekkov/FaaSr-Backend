@@ -1,21 +1,17 @@
-import uvicorn
-import sys
-import requests
 import logging
+import sys
 
-from pydantic import BaseModel
+import requests
+import uvicorn
 from fastapi import FastAPI
+from pydantic import BaseModel
+
 from FaaSr_py.config.debug_config import global_config
-from FaaSr_py.helpers.s3_helper_functions import flush_s3_log
 from FaaSr_py.helpers.rank import faasr_rank
-from FaaSr_py.s3_api import (
-    faasr_log,
-    faasr_put_file,
-    faasr_get_file,
-    faasr_delete_file,
-    faasr_get_folder_list,
-    faasr_get_s3_creds,
-)
+from FaaSr_py.helpers.s3_helper_functions import flush_s3_log
+from FaaSr_py.s3_api import (faasr_delete_file, faasr_get_file,
+                             faasr_get_folder_list, faasr_get_s3_creds,
+                             faasr_log, faasr_put_file)
 
 logger = logging.getLogger(__name__)
 faasr_api = FastAPI()

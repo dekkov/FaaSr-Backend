@@ -1,12 +1,11 @@
 import json
-import sys
 import logging
-
-from pathlib import Path
+import sys
 from collections import defaultdict
+from pathlib import Path
+
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
-
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ def validate_json(payload):
 def is_cyclic(adj_graph, curr, visited, stack):
     """
     Recursive function that if there is a cycle in a directed
-    graph specified by an adjacency list
+    graph defined by an adjacency list
 
     Arguments:
         adj_graph: adjacency list for graph (dict)
@@ -59,8 +58,8 @@ def is_cyclic(adj_graph, curr, visited, stack):
         return True
 
     # add current node to recursion call stack and visited set
-    visited.add(curr)  # remove rank from function name
-    stack.append(curr)  # remove rank from function name
+    visited.add(curr) 
+    stack.append(curr)
 
     # check each successor for cycles, recursively calling is_cyclic()
     for child in adj_graph[curr]:
@@ -79,7 +78,7 @@ def is_cyclic(adj_graph, curr, visited, stack):
 
 def build_adjacency_graph(payload):
     """
-    This function builds an adjacency list for the FaaSr workflow graph and records
+    This function builds an adjacency list for the FaaSr workflow graph and determines
     the ranks of each action
 
     Arguments:

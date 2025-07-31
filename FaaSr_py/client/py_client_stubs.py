@@ -1,5 +1,6 @@
-import requests
 import sys
+
+import requests
 
 
 def faasr_put_file(

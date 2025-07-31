@@ -15,6 +15,7 @@ from FaaSr_py.helpers.s3_helper_functions import (
     validate_uuid,
     get_default_log_boto3_client,
     get_logging_server,
+    get_invocation_folder,
 )
 
 
@@ -198,7 +199,7 @@ class FaaSrPayload:
             self["FaaSrLog"] = "FaaSrLog"
 
         # Get path to log
-        log_folder = Path(self["FaaSrLog"]) / Path(self["WorkflowName"]) / self["InvocationID"]
+        log_folder = get_invocation_folder(self)
 
         if global_config.USE_LOCAL_FILE_SYSTEM:
             log_folder.mkdir(parents=True, exist_ok=True)

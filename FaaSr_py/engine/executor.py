@@ -9,7 +9,7 @@ from pathlib import Path
 
 from FaaSr_py.engine.faasr_payload import FaaSrPayload
 from FaaSr_py.config.debug_config import global_config
-from FaaSr_py.helpers.s3_helper_functions import flush_s3_log
+from FaaSr_py.helpers.s3_helper_functions import flush_s3_log, get_invocation_folder
 from FaaSr_py.s3_api import faasr_put_file
 from FaaSr_py.server.faasr_server import run_server, wait_for_server_start
 from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_func_dependancy_install
@@ -97,7 +97,7 @@ class Executor:
         # At this point, the action has finished the invocation of the user Function
         # We flag this by uploading a file with the name FunctionInvoke.done to the S3 logs folder
         # Check if directory already exists. If not, create one
-        log_folder = f"{self.faasr['FaaSrLog']}/{self.faasr['InvocationID']}"
+        log_folder = get_invocation_folder(self.faasr)
         log_folder_path = f"/tmp/{log_folder}/{self.faasr['FunctionInvoke']}/flag/"
         if not os.path.isdir(log_folder_path):
             os.makedirs(log_folder_path)

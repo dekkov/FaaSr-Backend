@@ -7,6 +7,8 @@ from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.helpers.s3_helper_functions import (
     get_logging_server,
     get_default_log_boto3_client,
+    get_invocation_folder
+    
 )
 
 
@@ -25,10 +27,7 @@ def faasr_log(faasr_payload, log_message):
         logger.error("ERROR -- log_message is empty")
         sys.exit(1)
 
-    log_folder = (Path(faasr_payload["FaaSrLog"]) / 
-                  Path(faasr_payload["WorkflowName"]) / 
-                  faasr_payload["InvocationID"]
-    )
+    log_folder = get_invocation_folder(faasr_payload)
     log_path = log_folder / faasr_payload.log_file
 
     if global_config.USE_LOCAL_FILE_SYSTEM:

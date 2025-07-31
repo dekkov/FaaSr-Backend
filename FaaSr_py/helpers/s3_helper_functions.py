@@ -3,6 +3,8 @@ import sys
 import boto3
 import logging
 
+from pathlib import Path
+
 from FaaSr_py.config.s3_log_sender import S3LogSender
 
 
@@ -74,3 +76,10 @@ def get_default_log_boto3_client(faasr_payload):
 def flush_s3_log():
     log_sender = S3LogSender.get_log_sender()
     log_sender.flush_log()
+
+
+def get_invocation_folder(faasr_payload):
+    return (Path(faasr_payload["FaaSrLog"]) / 
+            Path(faasr_payload["WorkflowName"]) / 
+            faasr_payload["InvocationID"]
+    )

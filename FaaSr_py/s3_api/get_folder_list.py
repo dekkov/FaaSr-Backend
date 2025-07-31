@@ -47,7 +47,7 @@ def faasr_get_folder_list(faasr_payload, server_name="", prefix=""):
         )
 
     # List objects from S3 bucket
-    result = s3_client.list_objects_v2(Bucket=target_s3["Bucket"], Prefix=prefix)
+    result = s3_client.list_objects_v2(Bucket=target_s3["Bucket"], Prefix=str(prefix))
     if "Contents" in result:
         result = [content["Key"] for content in result["Contents"]]
         result = [obj for obj in result if not obj.endswith("/")]

@@ -232,7 +232,7 @@ class FaaSrPayload:
         and aborts if they have not finished or the current function instance was not
         the first to write to the candidate set
         """
-        id_folder = f"{self['FaaSrLog']}/{self['InvocationID']}"
+        id_folder = get_invocation_folder(self)
 
         if global_config.USE_LOCAL_FILE_SYSTEM:
             log_folder = Path(global_config.LOCAL_FILE_SYSTEM_DIR) / id_folder

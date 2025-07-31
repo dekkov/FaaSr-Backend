@@ -258,7 +258,7 @@ class FaaSrPayload:
             # and see if all of the other actions have written that they are "done"
             # If all predecessor's are not finished, then this action aborts
             s3_list_object_response = s3_client.list_objects_v2(
-                Bucket=s3_log_info["Bucket"], Prefix=id_folder
+                Bucket=s3_log_info["Bucket"], Prefix=str(id_folder)
             )
             s3_contents = s3_list_object_response.get("Contents", [])
 

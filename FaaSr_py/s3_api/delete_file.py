@@ -23,8 +23,8 @@ def faasr_delete_file(faasr_payload, remote_file, server_name="", remote_folder=
     # 1: duplicated "/" ("/remote/folder/", "/file_name")
     # 2: multiple "/" by user mistakes ("//remote/folder//", "file_name")
     # 3: file_name ended with "/" ("/remote/folder", "file_name/")
-    remote_folder = re.sub(r"/+", "/", remote_folder.rstrip("/"))
-    remote_file = re.sub(r"/+", "/", remote_file.rstrip("/"))
+    remote_folder = re.sub(r"/+", "/", str(remote_folder).rstrip("/"))
+    remote_file = re.sub(r"/+", "/", str(remote_file).rstrip("/"))
 
     # Name of file to delete from S3
     delete_file_path = Path(remote_folder) / remote_file

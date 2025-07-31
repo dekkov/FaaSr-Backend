@@ -22,10 +22,10 @@ def faasr_get_file(
     Download file from S3 or local file system
     """
     # Clean folder and file paths
-    remote_folder = re.sub(r"/+", "/", remote_folder.rstrip("/"))
-    remote_file = re.sub(r"/+", "/", remote_file.rstrip("/"))
-    local_folder = re.sub(r"/+", "/", local_folder.rstrip("/"))
-    local_file = re.sub(r"/+", "/", local_file.rstrip("/"))
+    remote_folder = re.sub(r"/+", "/", str(remote_folder).rstrip("/"))
+    remote_file = re.sub(r"/+", "/", str(remote_file).rstrip("/"))
+    local_folder = re.sub(r"/+", "/", str(local_folder).rstrip("/"))
+    local_file = re.sub(r"/+", "/", str(local_file).rstrip("/"))
 
     get_file_local = Path(local_folder) / local_file
     get_file_remote = Path(remote_folder) / remote_file

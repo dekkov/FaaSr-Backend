@@ -43,41 +43,37 @@ class Executor:
         """
         func_name = self.faasr["ActionList"][action_name]["FunctionName"]
         func_type = self.faasr["ActionList"][action_name]["Type"]
-        if "PackageImports" in self.faasr:
-            imports = self.faasr["PackageImports"].get(func_name)
-        else:
-            imports = []
         user_args = self.get_user_function_args()
 
         if not global_config.SKIP_USER_FUNCTION:
-            try:
-                if func_type == "Python":
-                    # entry script for py function
-                    from FaaSr_py.client.py_user_func_entry import \
-                        run_py_function
+            if func_type == "Python":
+                # entry script for py function
+                from FaaSr_py.client.py_user_func_entry import run_py_function
 
-                    # run user func as seperate process
+                # run user func as seperate process
+                try:
                     py_func = Process(
                         target=run_py_function,
-                        args=(self.faasr, func_name, user_args, imports),
+                        args=(self.faasr, func_name, user_args),
                     )
+                except Exception as e:
+                    logger.error(f"Error running Python function: {e}")
+                    sys.exit(1)
 
-                    logger.info(f"Starting function: {func_name} (Python)")
-                    py_func.start()
-                    py_func.join()
+                logger.info(f"Starting function: {func_name} (Python)")
+                py_func.start()
+                py_func.join()
 
-                    if py_func.exitcode != 0:
-                        raise RuntimeError(
-                            f"non-zero exit code ({py_func.exitcode}) from Python function"
-                        )
-                elif func_type == "R":
-                    # path to R function handler
-                    r_entry_dir = Path(__file__).parent.parent / "client"
-                    r_entry_path = r_entry_dir / "r_user_func_entry.R"
+                func_res = py_func.exitcode
+            elif func_type == "R":
+                # path to R function handler
+                r_entry_dir = Path(__file__).parent.parent / "client"
+                r_entry_path = r_entry_dir / "r_user_func_entry.R"
 
-                    logger.info(f"Starting function: {func_name} (R)")
+                logger.info(f"Starting function: {func_name} (R)")
 
-                    # run R entry as a subprocess
+                # run R entry as a subprocess
+                try:
                     r_func = subprocess.run(
                         [
                             "Rscript",
@@ -88,17 +84,24 @@ class Executor:
                         ],
                         cwd=r_entry_dir,
                     )
-                    if r_func.returncode != 0:
-                        raise RuntimeError(
-                            f"non-zero exit code ({r_func.returncode}) from R function"
-                        )
-            except Exception as e:
-                raise RuntimeError("Error running user function") from e
+                except Exception as e:
+                    logger.error(f"Error running R function: {e}")
+                    sys.exit(1)
+                func_res = r_func.returncode
+            else:
+                logger.error(f"Unkown function type: {func_type}")
+                sys.exit(1)
+
+            if func_res != 0:
+                raise RuntimeError(
+                    f"non-zero exit code ({py_func.exitcode}) from user function"
+                )
         else:
             logger.info("SKIPPING USER FUNCTION")
 
         # At this point, the action has finished the invocation of the user Function
-        # We flag this by uploading a file with the name FunctionInvoke.done to the S3 logs folder
+        # We flag this by uploading a file with the name
+        # FunctionInvoke.done to the S3 logs folder
         # Check if directory already exists. If not, create one
         log_folder = get_invocation_folder(self.faasr)
         log_folder_path = f"/tmp/{log_folder}/{self.faasr['FunctionInvoke']}/flag/"

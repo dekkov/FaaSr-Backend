@@ -3,6 +3,8 @@ library("httr")
 source("r_client_stubs.R")
 source("r_func_helper.R")
 
+# Entry for R function process
+
 args <- commandArgs(trailingOnly = TRUE)
 func_name = args[1]
 user_args = fromJSON(args[2])

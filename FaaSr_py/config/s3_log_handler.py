@@ -6,7 +6,17 @@ logger = logging.getLogger(__name__)
 
 
 class S3LogHandler(logging.Handler):
+    """
+    Handler for Python logger to send logs to S3
+    """
+
     def __init__(self, faasr_payload, level, start_time):
+        """
+        Arguments:
+            faasr_payload: FaaSr payload instance
+            level: minimum logging threshold (DEBUG, INFO, WARNING, ERROR, EXCEPTION)
+            start_time: timestamp from start of FaaSr action
+        """
         # Initialize the S3LogSender with the provided faasr_payload
         self._sender = S3LogSender(timestamp=start_time, faasr_payload=faasr_payload)
         super().__init__(level=level)

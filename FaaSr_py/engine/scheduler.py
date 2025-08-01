@@ -16,6 +16,7 @@ class Scheduler:
     """
     Handles scheduling of next functions in the DAG
     """
+
     def __init__(self, faasr: FaaSrPayload):
         if not isinstance(faasr, FaaSrPayload):
             err_msg = "initializer for Scheduler must be FaaSrPayload instance"
@@ -23,7 +24,7 @@ class Scheduler:
             sys.exit(1)
         self.faasr = faasr
 
-    def trigger(self, return_val=None):
+    def trigger_all(self, return_val=None):
         """
         Batch trigger for all the next actions in the DAG
 
@@ -153,7 +154,11 @@ class Scheduler:
         }
 
         # Create url for GitHub API
-        url = f"https://api.github.com/repos/{repo}/actions/workflows/{workflow_file}/dispatches"
+        url = (
+            f"https://api.github.com/repos/"
+            f"{repo}/actions/workflows/"
+            f"{workflow_file}/dispatches"
+        )
 
         # Create body for POST request
         body = {"ref": git_ref, "inputs": inputs}
@@ -180,17 +185,20 @@ class Scheduler:
             sys.exit(1)
         elif response.status_code == 404:
             err_msg = (
-                f"GitHub Action: Cannot find the destination -- check the repo name: {repo}, "
-                f"workflow name: {workflow_file}, and branch: {git_ref}"
+                f"GitHub Action: Cannot find the destination: "
+                f"check repo: {repo}, workflow: {workflow_file}, "
+                f"and branch: {git_ref}"
             )
             logger.error(err_msg)
             sys.exit(1)
         elif response.status_code == 422:
             message = response.json().get("message")
             if message:
-                err_msg = f"GitHub Action': 'Cannot find the destination -- {message}"
+                err_msg = f"GitHub Action: {message}"
             else:
-                err_msg = f"GitHub Action': 'Cannot find the destination -- check ref {git_ref}"
+                err_msg = (
+                    f"GitHub Action': 'Cannot find the destination; check ref {git_ref}"
+                )
             logger.error(err_msg)
             sys.exit(1)
         else:
@@ -294,7 +302,8 @@ class Scheduler:
         # Create headers for POST
         headers = {"accept": "application/json", "Content-Type": "application/json"}
 
-        # to-do: invoke should take URL of payload & overwritten fields (not payload itself)
+        # to-do:
+        # invoke should take URL of payload & overwritten fields (not payload itself)
         # as input, and secrets if "UseSecretStore" is False for next_compute_server
         payload_dict = self.faasr.get_complete_workflow()
         # Create body for POST

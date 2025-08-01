@@ -38,7 +38,9 @@ def faasr_rsm(faasr_payload):
     max_wait = 13
 
     while True:
-        # Put an object with the name log/functionname/flag/{random_intger} into the S3 bucket
+        # Place a flag with the path:
+        # log/functionname/flag/{random_intger}
+        # into the S3 bucket
         try:
             s3_client.put_object(Key=str(flag_name), Bucket=target_s3["Bucket"])
         except Exception as e:
@@ -61,10 +63,14 @@ def faasr_rsm(faasr_payload):
                 time.sleep(2**cnt)
                 cnt += 1
         else:
-            # Check if a lock exists. If it does, then return false; otherwise, write lock to S3
+            # Check if a lock is present in s3 already
             check_lock = s3_client.list_objects_v2(
                 Bucket=target_s3["Bucket"], Prefix=str(lock_name)
             )
+
+            # if lock is not present already, place a lock and return True
+            # otherwise abort and return False to indicate that
+            # the lock was unable to be acquired
             if "Contents" not in check_lock or len(check_lock["Contents"]) == 0:
                 s3_client.put_object(
                     Bucket=target_s3["Bucket"],

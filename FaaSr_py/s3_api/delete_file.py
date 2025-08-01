@@ -73,8 +73,12 @@ def faasr_delete_file(faasr_payload, remote_file, server_name="", remote_folder=
             )
 
         # Delete file from S3
-        result = s3_client.delete_object(
-            Bucket=target_s3["Bucket"], Key=str(delete_file_path)
-        )
+        try:
+            s3_client.delete_object(
+                Bucket=target_s3["Bucket"], Key=str(delete_file_path)
+            )
+        except s3_client.exceptions.ClientError as e:
+            logger.error(f"Error deleting {delete_file_path}: {e}")
+            sys.exit(1)
 
-    # to-do: error if fail
+        logger.debug(f"File {remote_file} deleted")

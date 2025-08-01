@@ -1,5 +1,4 @@
 import datetime
-import os
 import random
 import string
 from pathlib import Path
@@ -33,7 +32,7 @@ def benchmark_faasr_put_file():
         generate_file(local_path, BYTES_PER_FILE)
 
         try:
-            faasr_put_file(
+            faasr_put_file(  # noqa: F821
                 local_file=filename,
                 remote_file=remote_path,
                 local_folder=LOCAL_FOLDER,

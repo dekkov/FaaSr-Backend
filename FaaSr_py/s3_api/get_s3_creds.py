@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 def faasr_get_s3_creds(faasr_payload, server_name=""):
     """
-    Returns credentials needed to create an Apache Pyarrow S3FileSystem instance
+    Returns S3 credentials. Used to setup Apache PyArrow and Arrow instances.
 
     Arguments:
         faasr_payload: FaaSr payload dict
@@ -53,7 +53,7 @@ def faasr_get_s3_creds(faasr_payload, server_name=""):
     return {
         "bucket": target_s3["Bucket"],
         "region": target_s3["Region"],
-        "endpoint": target_s3["Endpoint"],
+        "endpoint": target_s3.get("Endpoint"),
         "secret_key": secret_key,
         "access_key": access_key,
         "anonymous": anonymous,

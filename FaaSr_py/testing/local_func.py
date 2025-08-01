@@ -19,33 +19,42 @@ def default_func(test=32):
     folder = Path("test_folder")
 
     # test rank
-    print(faasr_rank())
+    print(faasr_rank())  # noqa: F821
 
+    # write to file
     local_file = Path("tmp") / filename
     local_file.parent.mkdir(parents=True, exist_ok=True)
     with open(local_file, "w") as f:
         f.write("test file content")
-    faasr_put_file(local_file=local_file, remote_file=filename, remote_folder=folder)
+
+    # put file in s3
+    faasr_put_file(  # noqa: F821
+        local_file=local_file, remote_file=filename, remote_folder=folder
+    )
 
     # test folder list
-    print(faasr_get_folder_list(prefix=folder))
+    print(faasr_get_folder_list())  # noqa: F821
 
     # test get file
-    faasr_get_file(
+    faasr_get_file(  # noqa: F821
         local_file="redownloaded.txt",
         local_folder="/tmp/",
         remote_file=filename,
         remote_folder=folder,
     )
+
+    # print downloaded file contents
     with open("/tmp/redownloaded.txt", "r") as f:
         print(f"redownloaded content: {f.readline()}")
 
     # test delete file
-    faasr_delete_file(remote_file=filename, remote_folder=folder)
-    print(faasr_get_folder_list(prefix=folder))
+    faasr_delete_file(remote_file=filename, remote_folder=folder)  # noqa: F821
+
+    # test folder list again
+    print(faasr_get_folder_list())  # noqa: F821
 
     # test get s3 creds
-    s3_creds = faasr_get_s3_creds()
+    s3_creds = faasr_get_s3_creds()  # noqa: F821
     print(f"bucket: {s3_creds["bucket"]}")
     print(f"s3_creds: {s3_creds}")
     return True

@@ -9,7 +9,7 @@ def default_func():
     test_file.write_text("This is a test file for FaaSr.\nLine 2 of the file.")
 
     # Upload file using faasr_put_file
-    faasr_put_file(
+    faasr_put_file(  # noqa: F821
         local_file="test_upload.txt",
         remote_file="uploaded.txt",
         local_folder="/tmp",
@@ -30,7 +30,7 @@ def default_func():
         print("Uploaded file not found.")
 
     # Delete file using faasr_delete_file
-    faasr_delete_file(
+    faasr_delete_file(  # noqa: F821
         remote_file="uploaded.txt", remote_folder="test-folder", server_name="local"
     )
 

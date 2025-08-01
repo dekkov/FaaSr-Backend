@@ -24,7 +24,8 @@ class FaaSrPayload:
     """
     - Workflow is union of base workflow (from github) and overwritten fields
     - The URL points to a GitHub file containing the workflow JSON.
-    - Methods to validate the workflow, replace secrets, check S3 data stores, and init log.
+    - Methods to validate the workflow, replace secrets, check S3 data stores,
+    - init log, and self-abort if predecessors not done.
 
     Top level changes (e.g. faasr_obj["FunctionInvoke"] = some_func)
     are tracked in self.overwritten and the scheduler will
@@ -174,7 +175,8 @@ class FaaSrPayload:
                     aws_secret_access_key=self["DataStores"][server]["SecretKey"],
                     region_name=server_region,
                 )
-            # Use boto3 head bucket to ensure that the bucket exists and that we have acces to it
+            # Use boto3 head bucket to ensure that the
+            # bucket exists and that we have acces to it
             try:
                 s3_client.head_bucket(Bucket=self["DataStores"][server]["Bucket"])
             except Exception as e:

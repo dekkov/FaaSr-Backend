@@ -144,7 +144,10 @@ def faasr_get_github_raw(token, path):
     reponame = parts[1]
     branch = parts[2]
     filepath = "/".join(parts[3:])
-    url = f"https://api.github.com/repos/{username}/{reponame}/contents/{filepath}?ref={branch}"
+    url = (
+        f"https://api.github.com/repos/"
+        f"{username}/{reponame}/contents/{filepath}?ref={branch}"
+    )
     headers = {
         "Accept": "application/vnd.github.v3+json",
         "X-GitHub-Api-Version": "2022-11-28",
@@ -231,15 +234,18 @@ def faasr_install_cran(package, lib_path=None):
         logger.info("No CRAN package dependency")
     else:
         logger.info(f"Installing CRAN package {package}")
-        if lib_path:
-            lib_path = f'"{lib_path}"'
-        else:
-            lib_path = ".libPaths()[1]"
+
+        lib_path = f'"{lib_path}"' if lib_path else ".libPaths()[1]"
+
         command = [
             "Rscript",
             "-e",
-            f'install.packages("{package}", lib={lib_path}, repos="https://cloud.r-project.org")',
+            (
+                f'install.packages("{package}", '
+                f'lib={lib_path}, repos="https://cloud.r-project.org")'
+            ),
         ]
+
         subprocess.run(command, text=True)
 
 

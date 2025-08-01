@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class S3LogSender:
     """
-    Uploads dev logs to S3
+    Sender for S3 dev logs
     """
 
     _log_sender = None

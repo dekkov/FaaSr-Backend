@@ -54,12 +54,16 @@ def faasr_log(faasr_payload, log_message):
         check_log_file = s3_client.list_objects_v2(Bucket=bucket, Prefix=str(log_path))
 
         # Download the log if it exists
-        if "Contents" in check_log_file and len(check_log_file["Contents"]) != 0:
-            if os.path.exists(log_download_path):
-                os.remove(log_download_path)
-            s3_client.download_file(
-                Bucket=bucket, Key=str(log_path), Filename=str(log_download_path)
-            )
+        try:
+            if "Contents" in check_log_file and len(check_log_file["Contents"]) != 0:
+                if os.path.exists(log_download_path):
+                    os.remove(log_download_path)
+                s3_client.download_file(
+                    Bucket=bucket, Key=str(log_path), Filename=str(log_download_path)
+                )
+        except s3_client.exceptions.ClientError as e:
+            logger.error(f"Error downloading log file: {e}")
+            sys.exit(1)
 
         # Write to log
         logs = f"{log_message}\n"
@@ -67,5 +71,11 @@ def faasr_log(faasr_payload, log_message):
             f.write(logs)
 
         # Upload log back to S3
-        with open(log_download_path, "rb") as log_data:
-            s3_client.put_object(Bucket=bucket, Body=log_data, Key=str(log_path))
+        try:
+            with open(log_download_path, "rb") as log_data:
+                s3_client.put_object(Bucket=bucket, Body=log_data, Key=str(log_path))
+        except s3_client.exceptions.ClientError as e:
+            logger.error(f"Error reuploading log file: {e}")
+            sys.exit(1)
+
+        logger.debug("Log succesfully uploaded")

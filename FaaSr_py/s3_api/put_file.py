@@ -94,9 +94,13 @@ def faasr_put_file(
                 region_name=target_s3["Region"],
             )
 
-        with open(local_path, "rb") as put_data:
-            result = s3_client.put_object(
-                Bucket=target_s3["Bucket"], Body=put_data, Key=str(remote_path)
-            )
+        try:
+            with open(local_path, "rb") as put_data:
+                s3_client.put_object(
+                    Bucket=target_s3["Bucket"], Body=put_data, Key=str(remote_path)
+                )
+        except s3_client.exceptions.ClientError as e:
+            logger.error(f"Error putting file in S3: {e}")
+            sys.exit(1)
 
-    # to-do: error if fail
+        logger.debug(f"File {local_file} successfully uploaded to {remote_path}")

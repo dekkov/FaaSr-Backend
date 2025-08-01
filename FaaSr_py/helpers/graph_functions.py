@@ -58,7 +58,7 @@ def is_cyclic(adj_graph, curr, visited, stack):
         return True
 
     # add current node to recursion call stack and visited set
-    visited.add(curr) 
+    visited.add(curr)
     stack.append(curr)
 
     # check each successor for cycles, recursively calling is_cyclic()
@@ -119,8 +119,8 @@ def build_adjacency_graph(payload):
 
 def check_dag(faasr_payload):
     """
-    This method checks for cycles, repeated function names, or unreachable nodes in the workflow
-    and aborts if it finds any
+    This method checks for cycles, repeated function names,
+    or unreachable nodes in the workflow and aborts if it finds any
 
     Arguments:
         payload: FaaSr payload dict

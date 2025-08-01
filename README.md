@@ -26,11 +26,10 @@ faasr_get_folder_list(server_name, faasr_prefix)
 Lists all of the objects in specified S3 server (within the faasr bucket) with prefix
 
 faasr_get_s3_creds(server_name)
-Returns all of the S3 credentials for the default data store as a dict
-(bucket, region, endpoint, secret_key, access_key, anonymous)
+Returns S3 creds as a dict with the keys [bucket, region, endpoint, secret_key, access_key, anonymous]
 
 faasr_rank()
-Returns the rank and max_rank of the current function
+Returns the rank and max_rank of the current function as a dict with the keys [rank, max_rank]
 ```
 An * indicates that the parameter is required
 

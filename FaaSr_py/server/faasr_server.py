@@ -87,7 +87,7 @@ def register_request_handler(faasr_payload):
                         faasr_payload=faasr_payload, **args
                     )
                 case "faasr_rank":
-                    return_obj.Data["rank"] = faasr_rank(faasr_payload=faasr_payload)
+                    return_obj.Data = faasr_rank(faasr_payload=faasr_payload)
                 case "faasr_get_s3_creds":
                     return_obj.Data["s3_creds"] = faasr_get_s3_creds(
                         faasr_payload=faasr_payload, **args

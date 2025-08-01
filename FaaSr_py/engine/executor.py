@@ -143,12 +143,11 @@ class Executor:
             self.host_server_api(start_time=start_time)
             self.call(action_name)
             function_result = self.get_function_return()
-        except SystemExit as e:
-            raise e
-        except RuntimeError as e:
-            raise e
         except Exception as e:
-            raise e
+            if isinstance(e, SystemExit):
+                raise
+            logger.exception(e, stack_info=True)
+            sys.exit(1)
         finally:
             # Clean up server
             self.terminate_server()
@@ -208,14 +207,10 @@ class Executor:
         try:
             return_response = requests.get(f"http://127.0.0.1:{port}/faasr-get-return")
             return_val = return_response.json()
-        except requests.exceptions.RequestException as e:
-            err_msg = "REQUESTS ERROR GETTING FUNCTION RESULT"
+        except Exception:
+            err_msg = "Error getting function result"
             logger.exception(err_msg, stack_info=True)
-            raise RuntimeError(err_msg) from e
-        except Exception as e:
-            err_msg = f"UNKOWN ERROR GETTING FUNCTION RESULT -- {e}"
-            logger.exception(err_msg, stack_info=True)
-            raise RuntimeError(err_msg) from e
+            sys.exit(1)
 
         if return_val.get("Error"):
             if return_val.get("Message"):

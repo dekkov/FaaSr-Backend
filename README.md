@@ -20,10 +20,17 @@ faasr_delete_file(remote_file*, server_name, remote_folder)
 Deletes remote_file from specified S3 server
 
 faasr_log(msg*)
-Logs a message to your default S3 logging server for the current workflow
+Logs a message to S3
 
-get_folder_list(server_name, faasr_prefix)
+faasr_get_folder_list(server_name, faasr_prefix)
 Lists all of the objects in specified S3 server (within the faasr bucket) with prefix
+
+faasr_get_s3_creds(server_name)
+Returns all of the S3 credentials for the default data store as a dict
+(bucket, region, endpoint, secret_key, access_key, anonymous)
+
+faasr_rank()
+Returns the rank and max_rank of the current function
 ```
 An * indicates that the parameter is required
 

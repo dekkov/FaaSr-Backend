@@ -1,9 +1,8 @@
 import logging
 import sys
+from pathlib import Path
 
 import boto3
-
-from pathlib import Path
 
 from FaaSr_py.config.debug_config import global_config
 

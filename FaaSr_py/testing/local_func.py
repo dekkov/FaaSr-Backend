@@ -19,7 +19,7 @@ def default_func(test=32):
     folder = Path("test_folder")
 
     # test rank
-    print(faasr_rank())  # noqa: F821
+    print(f"rank: {faasr_rank()}")  # noqa: F821
 
     # write to file
     local_file = Path("tmp") / filename

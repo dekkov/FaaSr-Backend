@@ -1,4 +1,9 @@
-from collections import namedtuple
+import logging
+import sys
+
+from FaaSr_py.helpers.graph_functions import get_ranks
+
+logger = logging.getLogger(__name__)
 
 
 def faasr_rank(faasr_payload):
@@ -11,19 +16,20 @@ def faasr_rank(faasr_payload):
     # get current function name
     curr_func_name = faasr_payload["FunctionInvoke"]
 
-    # get current function
-    curr_func = faasr_payload["ActionList"][curr_func_name]
+    # get rank info
+    ranks = get_ranks(faasr_payload)
+    max_rank = ranks.get(curr_func_name)
 
-    # define namedtuple for return type
-    Rank = namedtuple("Rank", ["MaxRank", "Rank"])
+    if max_rank and max_rank > 1:
+        instance_rank = faasr_payload.get("FunctionRank")
 
-    if "Rank" in curr_func and len(curr_func["Rank"]) != 0:
-        # split rank
-        parts = curr_func["Rank"].split("/")
+        if not instance_rank:
+            logger.error(
+                "Internal error: ranked function but FunctionRank is missing; "
+                "please report this so that we can fix it"
+            )
+            sys.exit(1)
 
-        if len(parts) == 2:
-            return Rank(parts[1], parts[0])
-        else:
-            return Rank(None, None)
+        return {"max_rank": max_rank, "rank": instance_rank}
     else:
-        return Rank(None, None)
+        return {"max_rank": 1, "rank": 1}

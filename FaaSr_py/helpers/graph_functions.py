@@ -117,6 +117,12 @@ def build_adjacency_graph(payload):
     return (adj_graph, ranks)
 
 
+def get_ranks(payload):
+    """Returns just dict mapping functions to their rank"""
+    _, rank = build_adjacency_graph(payload)
+    return rank
+
+
 def check_dag(faasr_payload):
     """
     This method checks for cycles, repeated function names,

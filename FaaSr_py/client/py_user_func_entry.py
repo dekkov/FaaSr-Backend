@@ -51,8 +51,6 @@ def run_py_function(faasr, func_name, args, func_path=None):
     user_function.__globals__["faasr_log"] = faasr_log
     user_function.__globals__["faasr_rank"] = faasr_rank
     user_function.__globals__["faasr_get_s3_creds"] = faasr_get_s3_creds
-    user_function.__globals__["faasr_return"] = faasr_return
-    user_function.__globals__["faasr_exit"] = faasr_exit
 
     try:
         if global_config.USE_LOCAL_USER_FUNC:

@@ -151,7 +151,7 @@ def faasr_rank():
     r = requests.post("http://127.0.0.1:8000/faasr-action", json=request_json)
     try:
         response = r.json()
-        return response["Data"]["rank"]
+        return response["Data"]
     except Exception as e:
         err_msg = f"{{py_client_stub: failed to get rank from server -- {e}}}"
         print(err_msg)

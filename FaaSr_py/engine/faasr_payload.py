@@ -58,7 +58,7 @@ class FaaSrPayload:
         else:
             raise ValueError("Payload validation error")
 
-        if "FunctionRank" in self and self["FunctionRank"]:
+        if self.get("FunctionRank"):
             self.log_file = f"{self["FunctionInvoke"]}({self["FunctionRank"]}).txt"
         else:
             self.log_file = f"{self["FunctionInvoke"]}.txt"
@@ -90,6 +90,13 @@ class FaaSrPayload:
 
     def __it__(self):
         return iter(self.get_complete_workflow().items())
+
+    def get(self, key, default=None):
+        if key in self._overwritten:
+            return self._overwritten[key]
+        elif key in self._base_workflow:
+            return self._base_workflow[key]
+        return default
 
     @property
     def overwritten(self):

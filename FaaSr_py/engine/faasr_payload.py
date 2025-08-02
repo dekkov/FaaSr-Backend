@@ -3,7 +3,6 @@ import logging
 import os
 import random
 import sys
-import uuid
 from pathlib import Path
 
 import boto3
@@ -14,8 +13,7 @@ from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_get_github_raw
 from FaaSr_py.helpers.graph_functions import check_dag, validate_json
 from FaaSr_py.helpers.s3_helper_functions import (get_default_log_boto3_client,
                                                   get_invocation_folder,
-                                                  get_logging_server,
-                                                  validate_uuid)
+                                                  get_logging_server)
 
 logger = logging.getLogger(__name__)
 
@@ -231,10 +229,9 @@ class FaaSrPayload:
 
         # Create invocation ID if one is not already present
         if not self["InvocationID"]:
-            if not validate_uuid(self["InvocationID"]):
-                #ID = uuid.uuid4()
-                #self["InvocationID"] = str(ID)
-                self._generate_invocation_id_and_timestamp()
+            #ID = uuid.uuid4()
+            #self["InvocationID"] = str(ID)
+            self._generate_invocation_id_and_timestamp()
 
         faasr_msg = f"InvocationID for the workflow: {self["InvocationID"]}"
         logger.info(faasr_msg)

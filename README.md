@@ -1,7 +1,7 @@
 # What is FaaSr
 FaaSr is a serverless middleware that replaces the low level idiosyncrasies of FaaS providers with DAG defined execution graphs. With FaaSr, it is easy to switch between serverless providers, making it easy to scale workflows without needing to worry about refactoring to new platforms. 
 
-Currently, FaaSr supports GitHub actions, OpenWhisk, and AWS Lambda. Functions within the workflow can be written in Python or R and are ran inside of a FaaSr container on the user’s platform of choice. Workflows leverage S3 for persistent data-storage, with a built-in API for performing I/O within user functions.
+Currently, FaaSr supports GitHub actions, OpenWhisk, and AWS Lambda. Functions within workflows can be written in Python or R and are ran inside of a FaaSr container on the user’s platform of choice. Workflows leverage S3 for persistent data-storage, with a built-in API for performing I/O within user functions.
 This package provides backend tooling for DAG validation, compute server/data store checks, user package installation, function fetching and execution, workflow orchestration, and structured S3 logging. 
 
 # Using

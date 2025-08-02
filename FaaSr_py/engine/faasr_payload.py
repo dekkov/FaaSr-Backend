@@ -191,6 +191,38 @@ class FaaSrPayload:
                 logger.exception(err_message, stack_info=True)
                 sys.exit(1)
 
+    def _generate_invocation_id_and_timestamp(self):
+        """Generate InvocationTimestamp and InvocationID for entry point"""
+        from datetime import datetime
+        
+        # Always generate InvocationTimestamp for entry point
+        current_timestamp = datetime.now()
+        iso_timestamp = current_timestamp.isoformat()
+        self["InvocationTimestamp"] = iso_timestamp
+        
+        # Generate InvocationID based on configuration
+        if self.get("InvocationIDFromDate"):
+            # Use format to derive ID from timestamp
+            date_format = self["InvocationIDFromDate"]
+            try:
+                derived_id = current_timestamp.strftime(date_format)
+                self["InvocationID"] = derived_id
+                logger.info(f"Generated InvocationID from format '{date_format}': {derived_id}")
+            except ValueError as e:
+                logger.error(f"Invalid strftime format '{date_format}': {e}")
+                # Fallback to full timestamp
+                fallback_id = current_timestamp.strftime("%Y%m%d%H%M%S")
+                self["InvocationID"] = fallback_id
+                logger.info(f"Using fallback timestamp InvocationID: {fallback_id}")
+        else:
+            # No format specified - use full timestamp as InvocationID
+            timestamp_id = current_timestamp.strftime("%Y%m%d%H%M%S")
+            self["InvocationID"] = timestamp_id
+            logger.info(f"Generated InvocationID from full timestamp: {timestamp_id}")
+        
+        logger.info(f"InvocationTimestamp: {iso_timestamp}")
+        logger.info(f" InvocationID: {self['InvocationID']}")
+
     def init_log_folder(self):
         """
         Initializes a faasr log folder if one has not already been created
@@ -200,8 +232,9 @@ class FaaSrPayload:
         # Create invocation ID if one is not already present
         if not self["InvocationID"]:
             if not validate_uuid(self["InvocationID"]):
-                ID = uuid.uuid4()
-                self["InvocationID"] = str(ID)
+                #ID = uuid.uuid4()
+                #self["InvocationID"] = str(ID)
+                self._generate_invocation_id_and_timestamp()
 
         faasr_msg = f"InvocationID for the workflow: {self["InvocationID"]}"
         logger.info(faasr_msg)

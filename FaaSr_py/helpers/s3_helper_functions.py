@@ -81,5 +81,6 @@ def get_invocation_folder(faasr_payload):
     return (
         Path(faasr_payload["FaaSrLog"])
         / Path(faasr_payload["WorkflowName"])
+        / Path(faasr_payload["InvocationTimestamp"])
         / faasr_payload["InvocationID"]
     )

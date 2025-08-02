@@ -48,5 +48,5 @@ The GUI for creating a workflow can be found here: [FaaSr-JSON-Builder](https://
 For running functions on GitHub Action, you can use the following container: 
 ```
 ghcr.io/nolcut/ga-rpc-python:dev (Python functions)
-ghcr.io/nolcut/ga-rpc-python-R:dev (R functions)
+ghcr.io/nolcut/ga-rpc-R:dev (R functions)
 ```

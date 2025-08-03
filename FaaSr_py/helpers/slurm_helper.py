@@ -51,7 +51,7 @@ def validate_jwt_token(token):
         return {"valid": False, "error": f"Token validation error: {str(e)}"}
 
 
-def create_job_script(faasr, actionname):
+def create_job_script(faasr, actionname,environment_vars):
     """
     Create SLURM job script for FaaSr execution
     
@@ -71,39 +71,58 @@ def create_job_script(faasr, actionname):
     action_list = faasr.get("ActionList", {})
     function_type = action_list.get(actionname, {}).get("Type", "R")
     
-    if function_type == "Python":
-        entry_command = "python3 /action/faasr_start_invoke_slurm.py"
-    else:  # Default to R
-        entry_command = "Rscript /action/faasr_start_invoke_slurm.R"
+    #if function_type == "Python":
+        #entry_command = "python3 /action/faasr_start_invoke_github_actions.py"
+    #else:  # Default to R
+        #entry_command = "Rscript /action/faasr_start_invoke_slurm.R"
+
+    entry_command = "python3 /action/faasr_start_invoke_github_actions.py"
     
-    # Create job script following FaaSr patterns
+    env_exports = ""
+    docker_env_flags = ""
+    
+    if environment_vars:
+        env_exports += "\n# Set environment variables (GitHub Actions pattern)\n"
+        for key, value in environment_vars.items():
+            
+            escaped_value = str(value).replace("'", "'\"'\"'").replace("$", "\\$")
+            
+            
+            env_exports += f"export {key}='{escaped_value}'\n"
+            
+            docker_env_flags += f"  -e {key} \\\n"
+    
     script_lines = [
         "#!/bin/bash",
         f"#SBATCH --job-name=faasr-{actionname}",
         f"#SBATCH --output=faasr-{actionname}-%j.out",
         f"#SBATCH --error=faasr-{actionname}-%j.err",
         "",
-        "# FaaSr SLURM Job Script",
         f"echo \"Starting FaaSr job: {actionname}\"",
         "echo \"Job ID: $SLURM_JOB_ID\"",
         "echo \"Node: $SLURMD_NODENAME\"",
         "echo \"Time: $(date)\"",
         "",
-        "# Check container runtime availability",
+        env_exports,
+        "",
+        "echo \"Environment variables set:\"",
+        "echo \"PAYLOAD_URL: $PAYLOAD_URL\"",
+        "echo \"OVERWRITTEN length: ${#OVERWRITTEN}\"",
+        "echo \"SECRET_PAYLOAD present: $([ -n \\\"$SECRET_PAYLOAD\\\" ] && echo 'yes' || echo 'no')\"",
+        "",
         "if command -v docker &> /dev/null; then",
         "    CONTAINER_CMD=\"docker\"",
         "elif command -v podman &> /dev/null; then",
         "    CONTAINER_CMD=\"podman\"",
         "else",
-        "    echo \"Error: Neither Docker nor Podman found\"",
+        "    echo \"Error: No container runtime found\"",
         "    exit 1",
         "fi",
         "",
         "echo \"Using container runtime: $CONTAINER_CMD\"",
         "",
-        "# Execute FaaSr container with payload",
         "$CONTAINER_CMD run --rm --network=host \\",
-        "  -e FAASR_PAYLOAD=\"$FAASR_PAYLOAD\" \\",
+        docker_env_flags.rstrip(" \\\n") + " \\",  # Remove trailing backslash and newline
         f"  {container_image} \\",
         f"  /bin/bash -c 'cd /action && {entry_command}'",
         "",
@@ -192,15 +211,22 @@ def make_slurm_request(endpoint, method="GET", headers=None, body=None, token=No
     if headers is None:
         headers = {}
     
-    # Add SLURM authentication headers (same as R package)
-    if token and token.strip():
-        headers['X-SLURM-USER-TOKEN'] = token
-        headers['X-SLURM-USER-NAME'] = username or "ubuntu"
-        logger.info(f"Added SLURM auth headers for user: {username or 'ubuntu'}")
-    else:
-        logger.warning("No SLURM token provided - request may fail")
-
-    try:
+    if not token or not token.strip():
+        logger.error("SLURM token is required - server will close connection without authentication")
+        raise ValueError("SLURM token is required for authentication")
+    
+    token = token.strip()
+    if not token.startswith("eyJ"):
+        logger.error(f"Token doesn't look like JWT (should start with 'eyJ'): {token[:10]}...")
+        raise ValueError("Invalid JWT token format")
+    
+    headers['X-SLURM-USER-TOKEN'] = token
+    headers['X-SLURM-USER-NAME'] = username or "ubuntu"
+    headers['Accept'] = 'application/json'
+    
+    if method.upper() == "POST":
+        headers['Content-Type'] = 'application/json'
+          
         if method.upper() == "GET":
             response = requests.get(
                 url=endpoint,
@@ -231,13 +257,3 @@ def make_slurm_request(endpoint, method="GET", headers=None, body=None, token=No
             raise ValueError(f"Unsupported HTTP method: {method}")
         
         return response
-        
-    except requests.exceptions.Timeout:
-        logger.error(f"SLURM request timed out: {endpoint}")
-        raise
-    except requests.exceptions.ConnectionError:
-        logger.error(f"SLURM connection error: {endpoint}")
-        raise
-    except Exception as e:
-        logger.error(f"SLURM request failed: {e}")
-        raise

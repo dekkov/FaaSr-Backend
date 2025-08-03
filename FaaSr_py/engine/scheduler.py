@@ -395,7 +395,7 @@ class Scheduler:
         # Create overwritten fields for the next action (following GitHub Actions pattern)
         overwritten_fields = self.faasr.overwritten.copy()
         
-        # CRITICAL: Handle UseSecretStore logic (same as GitHub Actions)
+
         if next_compute_server.get("UseSecretStore"):
             # Next action will fetch secrets from its own secret store
             # Remove secrets from overwritten fields
@@ -410,18 +410,18 @@ class Scheduler:
             overwritten_fields["ComputeServers"] = self.faasr["ComputeServers"]
             overwritten_fields["DataStores"] = self.faasr["DataStores"]
             logger.info("Next SLURM action expects secrets in payload - including credentials")
-        
-        # Create job script
-        job_script = create_job_script(self.faasr, function)
-        
-        # Get resource requirements for the function
-        resource_config = get_resource_requirements(self.faasr, function, server_info)
-        
-        # Prepare environment variables for SLURM job (following GitHub Actions pattern)
+
+        # Prepare environment variables for SLURM job
         environment_vars = {
             "PAYLOAD_URL": self.faasr.url,  # URL to GitHub-hosted workflow JSON
             "OVERWRITTEN": json.dumps(overwritten_fields, separators=(',', ':'))
         }
+        
+        # Create job script
+        job_script = create_job_script(self.faasr, function, environment_vars)
+        
+        # Get resource requirements for the function
+        resource_config = get_resource_requirements(self.faasr, function, server_info)
         
         # Add secrets only if UseSecretStore is False for current server
         current_func = self.faasr["FunctionInvoke"]
@@ -435,7 +435,7 @@ class Scheduler:
                 "DataStores": self.faasr["DataStores"]
             }
             environment_vars["SECRET_PAYLOAD"] = json.dumps(secrets_payload, separators=(',', ':'))
-            logger.info("Including secrets in SLURM job environment")
+            
         else:
             logger.info("Current server uses secret store - secrets will be fetched by SLURM job")
         
@@ -458,19 +458,13 @@ class Scheduler:
         # Submit job
         submit_url = f"{endpoint}/slurm/{api_version}/job/submit"
         
-        headers = {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'X-SLURM-USER-TOKEN': server_info["Token"],
-            'X-SLURM-USER-NAME': username
-        }
+        logger.info(f"SLURM: Submitting job to {submit_url}")
         
-        # Make the request
         try:
             response = make_slurm_request(
                 endpoint=submit_url,
                 method="POST",
-                headers=headers,
+                headers=None, 
                 body=job_payload,
                 token=token,
                 username=username
@@ -500,13 +494,19 @@ class Scheduler:
                 
                 if response.status_code == 401:
                     logger.error("SLURM: Authentication failed - check token validity and username")
+                elif response.status_code == 403:
+                    logger.error("SLURM: Authorization failed - check user permissions")
                 
                 sys.exit(1)
                 
+        except ValueError as e:
+            if "authentication" in str(e).lower():
+                logger.error("SLURM: Authentication error - check your JWT token")
+            logger.error(f"SLURM: Request error: {e}")
+            sys.exit(1)
         except Exception as e:
             logger.exception(f"SLURM request failed: {e}")
             sys.exit(1)
-
 
 def contains_dict(list_obj):
     """

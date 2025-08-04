@@ -13,9 +13,11 @@ from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.helpers.faasr_lock import faasr_acquire, faasr_release
 from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_get_github_raw
 from FaaSr_py.helpers.graph_functions import check_dag, validate_json
-from FaaSr_py.helpers.s3_helper_functions import (get_default_log_boto3_client,
-                                                  get_invocation_folder,
-                                                  get_logging_server)
+from FaaSr_py.helpers.s3_helper_functions import (
+    get_default_log_boto3_client,
+    get_invocation_folder,
+    get_logging_server,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +198,7 @@ class FaaSrPayload:
         Generate InvocationTimestamp for entry point.
         Always called to ensure timestamp exists regardless of ID source.
         """
-        
+
         # Only generate if not already present
         if not self.get("InvocationTimestamp"):
             current_timestamp = datetime.now()
@@ -204,29 +206,36 @@ class FaaSrPayload:
             self["InvocationTimestamp"] = iso_timestamp
             logger.info(f"Generated InvocationTimestamp: {iso_timestamp}")
         else:
-            logger.info(f"Using existing InvocationTimestamp: {self['InvocationTimestamp']}")
+            logger.info(
+                f"Using existing InvocationTimestamp: {self['InvocationTimestamp']}"
+            )
 
     def _generate_invocation_id(self):
         """Generate InvocationID for entry point"""
-        
+
         # Generate InvocationID based on configuration
-        if self.get("InvocationIDFromDate"):   
+        if self.get("InvocationIDFromDate"):
             # Use format to derive ID from timestamp
             date_format = self["InvocationIDFromDate"]
             timestamp_str = self["InvocationTimestamp"]
             current_timestamp = datetime.fromisoformat(timestamp_str)
-            
+
             try:
                 derived_id = current_timestamp.strftime(date_format)
                 self["InvocationID"] = derived_id
-                logger.info(f"Generated InvocationID from format '{date_format}': {derived_id}")
+                logger.info(
+                    f"Generated InvocationID from format '{date_format}': {derived_id}"
+                )
             except ValueError as e:
-            # Raise custom exception with clear context
-                error_msg = f"FaaSr Configuration Error: Invalid date format '{date_format}' in InvocationIDFromDate. {str(e)}"
+                # Raise custom exception with clear context
+                error_msg = (
+                    f"FaaSr Configuration Error: Invalid date format '{date_format}' "
+                    f"in InvocationIDFromDate. {str(e)}"
+                )
                 logger.error(error_msg)
                 raise ValueError(error_msg)
         else:
-           
+
             ID = uuid.uuid4()
             self["InvocationID"] = str(ID)
             logger.info(f"Generated default UUID : {ID}")
@@ -243,8 +252,8 @@ class FaaSrPayload:
         # Create invocation ID if one is not already present
         if not self["InvocationID"] or self["InvocationID"].strip() == "":
             print("reached here")
-            #ID = uuid.uuid4()
-            #self["InvocationID"] = str(ID)
+            # ID = uuid.uuid4()
+            # self["InvocationID"] = str(ID)
             self._generate_invocation_id()
 
         faasr_msg = f"InvocationID for the workflow: {self["InvocationID"]}"

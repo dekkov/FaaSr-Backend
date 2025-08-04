@@ -3,7 +3,9 @@ import logging
 import os
 import random
 import sys
+import uuid
 from pathlib import Path
+from datetime import datetime
 
 import boto3
 
@@ -189,36 +191,45 @@ class FaaSrPayload:
                 logger.exception(err_message, stack_info=True)
                 sys.exit(1)
 
-    def _generate_invocation_id_and_timestamp(self):
-        """Generate InvocationTimestamp and InvocationID for entry point"""
-        from datetime import datetime
+    def _generate_invocation_timestamp(self):
+        """
+        Generate InvocationTimestamp for entry point.
+        Always called to ensure timestamp exists regardless of ID source.
+        """
         
-        # Always generate InvocationTimestamp for entry point
-        current_timestamp = datetime.now()
-        iso_timestamp = current_timestamp.isoformat()
-        self["InvocationTimestamp"] = iso_timestamp
+        # Only generate if not already present
+        if not self.get("InvocationTimestamp"):
+            current_timestamp = datetime.now()
+            iso_timestamp = current_timestamp.isoformat()
+            self["InvocationTimestamp"] = iso_timestamp
+            logger.info(f"Generated InvocationTimestamp: {iso_timestamp}")
+        else:
+            logger.info(f"Using existing InvocationTimestamp: {self['InvocationTimestamp']}")
+
+    def _generate_invocation_id(self):
+        """Generate InvocationID for entry point"""
         
         # Generate InvocationID based on configuration
-        if self.get("InvocationIDFromDate"):
+        if self.get("InvocationIDFromDate"):   
             # Use format to derive ID from timestamp
             date_format = self["InvocationIDFromDate"]
+            timestamp_str = self["InvocationTimestamp"]
+            current_timestamp = datetime.fromisoformat(timestamp_str)
+            
             try:
                 derived_id = current_timestamp.strftime(date_format)
                 self["InvocationID"] = derived_id
                 logger.info(f"Generated InvocationID from format '{date_format}': {derived_id}")
             except ValueError as e:
-                logger.error(f"Invalid strftime format '{date_format}': {e}")
-                # Fallback to full timestamp
-                fallback_id = current_timestamp.strftime("%Y%m%d%H%M%S")
-                self["InvocationID"] = fallback_id
-                logger.info(f"Using fallback timestamp InvocationID: {fallback_id}")
+            # Raise custom exception with clear context
+                error_msg = f"FaaSr Configuration Error: Invalid date format '{date_format}' in InvocationIDFromDate. {str(e)}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
         else:
-            # No format specified - use full timestamp as InvocationID
-            timestamp_id = current_timestamp.strftime("%Y%m%d%H%M%S")
-            self["InvocationID"] = timestamp_id
-            logger.info(f"Generated InvocationID from full timestamp: {timestamp_id}")
-        
-        logger.info(f"InvocationTimestamp: {iso_timestamp}")
+           
+            ID = uuid.uuid4()
+            self["InvocationID"] = str(ID)
+            logger.info(f"Generated default UUID : {ID}")
         logger.info(f" InvocationID: {self['InvocationID']}")
 
     def init_log_folder(self):
@@ -227,11 +238,14 @@ class FaaSrPayload:
         """
         logger.debug("Initializing log folder")
 
+        self._generate_invocation_timestamp()
+
         # Create invocation ID if one is not already present
-        if not self["InvocationID"]:
+        if not self["InvocationID"] or self["InvocationID"].strip() == "":
+            print("reached here")
             #ID = uuid.uuid4()
             #self["InvocationID"] = str(ID)
-            self._generate_invocation_id_and_timestamp()
+            self._generate_invocation_id()
 
         faasr_msg = f"InvocationID for the workflow: {self["InvocationID"]}"
         logger.info(faasr_msg)

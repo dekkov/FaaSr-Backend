@@ -10,10 +10,8 @@ import requests
 
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.engine.faasr_payload import FaaSrPayload
-from FaaSr_py.helpers.faasr_start_invoke_helper import \
-    faasr_func_dependancy_install
-from FaaSr_py.helpers.s3_helper_functions import (flush_s3_log,
-                                                  get_invocation_folder)
+from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_func_dependancy_install
+from FaaSr_py.helpers.s3_helper_functions import flush_s3_log, get_invocation_folder
 from FaaSr_py.s3_api import faasr_put_file
 from FaaSr_py.server.faasr_server import run_server, wait_for_server_start
 
@@ -105,14 +103,18 @@ class Executor:
         # Check if directory already exists. If not, create one
         log_folder = get_invocation_folder(self.faasr)
         log_folder_path = f"/tmp/{log_folder}/{self.faasr['FunctionInvoke']}/flag/"
+
         if not os.path.isdir(log_folder_path):
             os.makedirs(log_folder_path)
+
         if "FunctionRank" in self.faasr:
             file_name = (
                 f"{self.faasr['FunctionInvoke']}.{self.faasr["FunctionRank"]}.done"
             )
         else:
             file_name = f"{self.faasr['FunctionInvoke']}.done"
+
+        # Set content of .done file to True
         with open(f"{log_folder_path}/{file_name}", "w") as f:
             f.write("True")
 
@@ -124,6 +126,8 @@ class Executor:
             remote_folder=log_folder,
             remote_file=file_name,
         )
+        
+        logger.debug(f"Put {file_name} file in S3")
 
     def run_func(self, action_name, start_time):
         """
@@ -186,6 +190,7 @@ class Executor:
         Returns:
             dict -- user function arguments
         """
+
         user_action = self.faasr["FunctionInvoke"]
 
         args = self.faasr["ActionList"][user_action]["Arguments"]

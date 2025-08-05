@@ -106,6 +106,8 @@ class Scheduler:
                         self.invoke_lambda(next_compute_server, function)
                     case "GitHubActions":
                         self.invoke_gh(next_compute_server, function)
+                    case "SLURM":
+                        self.invoke_slurm(next_compute_server, function)
             else:
                 msg = f"SIMULATED TRIGGER: {function}"
                 if rank_num > 1:
@@ -208,12 +210,12 @@ class Scheduler:
                     err_msg = f"{message}"
                 else:
                     err_msg = (
-                        "GitHub Action: unknown error happens when invoke next function"
+                        "GitHub Action: Unknown error happens when invoke next function"
                     )
                 logger.error(err_msg)
                 sys.exit(1)
             else:
-                err_msg = f"GitHub Action: unknown error when invoking {function}"
+                err_msg = f"GitHub Action: No response from GitHub"
                 logger.error(err_msg)
                 sys.exit(1)
 
@@ -351,6 +353,188 @@ class Scheduler:
                 f"status code: {response.status_code}"
             )
             logger.error(err_msg)
+            sys.exit(1)
+
+    def invoke_slurm(self, next_compute_server, function):
+        """
+        Trigger SLURM job for next function
+        Follows the same pattern as GitHub Actions with URL + overwritten fields + secrets
+
+        Arguments:
+            next_compute_server: dict -- next compute server configuration
+            function: str -- name of the function to invoke
+        """
+
+        from FaaSr_py.helpers.slurm_helper import (
+            validate_jwt_token,
+            create_job_script,
+            get_resource_requirements,
+            make_slurm_request,
+        )
+
+        # Get server configuration
+        server_info = next_compute_server
+        api_version = server_info.get("APIVersion", "v0.0.37")
+        endpoint = server_info["Endpoint"]
+
+        # Ensure endpoint has protocol
+        if not endpoint.startswith("http"):
+            endpoint = f"http://{endpoint}"
+
+        # Validate JWT token (same validation as R package)
+        token = server_info.get("Token")
+        if not token or token.strip() == "":
+            err_msg = f"SLURM: No authentication token available for server {function}"
+            logger.error(err_msg)
+            sys.exit(1)
+
+        # Validate JWT token
+        token_validation = validate_jwt_token(server_info.get("Token"))
+        if not token_validation["valid"]:
+            err_msg = (
+                f"SLURM: Token validation failed for {self.faasr['FunctionInvoke']} - "
+                f"{token_validation['error']}"
+            )
+            logger.error(err_msg)
+            sys.exit(1)
+
+        # Validate username configuration
+        username = server_info.get("UserName", "ubuntu")
+        if not username:
+            err_msg = f"SLURM: Username not configured for server {function}"
+            logger.error(err_msg)
+            sys.exit(1)
+
+        # Create overwritten fields for the next action (following GitHub Actions pattern)
+        overwritten_fields = self.faasr.overwritten.copy()
+
+        if next_compute_server.get("UseSecretStore"):
+            # Next action will fetch secrets from its own secret store
+            # Remove secrets from overwritten fields
+            if "ComputeServers" in overwritten_fields:
+                del overwritten_fields["ComputeServers"]
+            if "DataStores" in overwritten_fields:
+                del overwritten_fields["DataStores"]
+            logger.info(
+                "Next SLURM action will use secret store. Secrets not included in payload"
+            )
+        else:
+            # Next action expects secrets in payload
+            # Include full ComputeServers and DataStores with secrets
+            overwritten_fields["ComputeServers"] = self.faasr["ComputeServers"]
+            overwritten_fields["DataStores"] = self.faasr["DataStores"]
+            logger.info(
+                "Next SLURM action expects secrets in payload - including credentials"
+            )
+
+        # Prepare environment variables for SLURM job
+        environment_vars = {
+            "PAYLOAD_URL": self.faasr.url,  # URL to GitHub-hosted workflow JSON
+            "OVERWRITTEN": json.dumps(overwritten_fields, separators=(",", ":")),
+        }
+
+        # Create job script
+        job_script = create_job_script(self.faasr, function, environment_vars)
+
+        # Get resource requirements for the function
+        resource_config = get_resource_requirements(self.faasr, function, server_info)
+
+        # Add secrets only if UseSecretStore is False for current server
+        current_func = self.faasr["FunctionInvoke"]
+        current_server = self.faasr["ActionList"][current_func]["FaaSServer"]
+        current_compute_server = self.faasr["ComputeServers"][current_server]
+
+        if not current_compute_server.get("UseSecretStore"):
+            # Include secrets for the next action (it doesn't have access to secret store)
+            secrets_payload = {
+                "ComputeServers": self.faasr["ComputeServers"],
+                "DataStores": self.faasr["DataStores"],
+            }
+            environment_vars["SECRET_PAYLOAD"] = json.dumps(
+                secrets_payload, separators=(",", ":")
+            )
+
+        else:
+            logger.info(
+                "Current server uses secret store - secrets will be fetched by SLURM job"
+            )
+
+        # Prepare job payload with resource requirements
+        job_payload = {
+            "job": {
+                "name": f"faasr-{function}",
+                "partition": resource_config["partition"],
+                "nodes": str(resource_config["nodes"]),
+                "tasks": str(resource_config["tasks"]),
+                "cpus_per_task": str(resource_config["cpus_per_task"]),
+                "memory_per_cpu": str(resource_config["memory_mb"]),
+                "time_limit": str(resource_config["time_limit"]),
+                "current_working_directory": resource_config["working_dir"],
+                "environment": environment_vars,
+            },
+            "script": job_script,
+        }
+
+        # Submit job
+        submit_url = f"{endpoint}/slurm/{api_version}/job/submit"
+
+        logger.info(f"SLURM: Submitting job to {submit_url}")
+
+        try:
+            response = make_slurm_request(
+                endpoint=submit_url,
+                method="POST",
+                headers=None,
+                body=job_payload,
+                token=token,
+                username=username,
+            )
+
+            if response.status_code in [200, 201, 202]:
+                job_info = response.json()
+
+                # Extract job ID with multiple fallback options
+                job_id = (
+                    job_info.get("job_id")
+                    or job_info.get("jobId")
+                    or job_info.get("id")
+                    or (
+                        job_info.get("job", {}).get("job_id")
+                        if job_info.get("job")
+                        else None
+                    )
+                    or "unknown"
+                )
+
+                succ_msg = (
+                    f"SLURM: Successfully submitted job: {self.faasr['FunctionInvoke']} "
+                    f"(Job ID: {job_id})"
+                )
+                logger.info(succ_msg)
+            else:
+                error_content = response.text
+                err_msg = (
+                    f"SLURM: Error submitting job: {self.faasr['FunctionInvoke']} - "
+                    f"HTTP {response.status_code}: {error_content}"
+                )
+                logger.error(err_msg)
+
+                if response.status_code == 401:
+                    logger.error(
+                        "SLURM: Authentication failed - check token validity and username"
+                    )
+                elif response.status_code == 403:
+                    logger.error("SLURM: Authorization failed - check user permissions")
+
+                sys.exit(1)
+
+        except ValueError as e:
+            if "authentication" in str(e).lower():
+                logger.error("SLURM: Authentication error - check your JWT token")
+            logger.error(f"SLURM: Request error: {e}")
+            sys.exit(1)
+        except Exception as e:
+            logger.exception(f"SLURM request failed: {e}")
             sys.exit(1)
 
 

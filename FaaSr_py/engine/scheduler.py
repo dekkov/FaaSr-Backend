@@ -235,13 +235,28 @@ class Scheduler:
         )
 
         # Invoke lambda function
-        # to-do: lambda function should take URL of payload &
-        # overwritten fields (not payload itself) as input,
-        # and pass secrets if "UseSecretStore" is False for next_compute_server
+
+        overwritten_fields = self.faasr.overwritten
+
+        # Don't send secrets to next action if UseSecretStore is set
+        if next_compute_server.get("UseSecretStore"):
+            if "ComputeServers" in overwritten_fields:
+                del overwritten_fields["ComputeServers"]
+            if "DataStores" in overwritten_fields:
+                del overwritten_fields["DataStores"]
+        else:
+            overwritten_fields["ComputeServers"] = self.faasr["ComputeServers"]
+            overwritten_fields["DataStores"] = self.faasr["DataStores"]
+
         try:
+            payload = {
+                "OVERWRITTEN": json.dumps(overwritten_fields),
+                "PAYLOAD_URL": self.faasr.url,
+            }
+
             response = lambda_client.invoke(
                 FunctionName=function,
-                Payload=json.dumps(self.faasr.get_complete_workflow()),
+                Payload=json.dumps(payload),
             )
         except Exception as e:
             logger.exception(e, stack_info=True)

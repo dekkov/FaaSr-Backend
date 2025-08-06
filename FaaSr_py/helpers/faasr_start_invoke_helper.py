@@ -72,7 +72,8 @@ def faasr_get_github(faasr_source, path, token=None):
         path = None
 
     url = f"https://api.github.com/repos/{repo}/tarball"
-    tar_name = f"/tmp/{reponame}.tar.gz"
+    tar_name = f"./tmp/{reponame}.tar.gz"
+    os.makedirs("tmp", exist_ok=True)
 
     headers = {
         "Accept": "application/vnd.github.v3+json",

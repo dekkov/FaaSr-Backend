@@ -4,8 +4,8 @@ import os
 import random
 import sys
 import uuid
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 import boto3
 

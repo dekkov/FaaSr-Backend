@@ -215,7 +215,7 @@ class Scheduler:
                 logger.error(err_msg)
                 sys.exit(1)
             else:
-                err_msg = f"GitHub Action: No response from GitHub"
+                err_msg = "GitHub Action: No response from GitHub"
                 logger.error(err_msg)
                 sys.exit(1)
 
@@ -366,10 +366,10 @@ class Scheduler:
         """
 
         from FaaSr_py.helpers.slurm_helper import (
-            validate_jwt_token,
             create_job_script,
             get_resource_requirements,
             make_slurm_request,
+            validate_jwt_token,
         )
 
         # Get server configuration

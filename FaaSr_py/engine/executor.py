@@ -126,7 +126,7 @@ class Executor:
             remote_folder=log_folder,
             remote_file=file_name,
         )
-        
+
         logger.debug(f"Put {file_name} file in S3")
 
     def run_func(self, action_name, start_time):

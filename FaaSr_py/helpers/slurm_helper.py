@@ -1,9 +1,10 @@
+import base64
 import json
 import logging
-import base64
 import time
-import requests
 from datetime import datetime
+
+import requests
 
 logger = logging.getLogger(__name__)
 

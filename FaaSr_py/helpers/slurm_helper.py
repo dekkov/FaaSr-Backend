@@ -68,15 +68,6 @@ def create_job_script(faasr, actionname, environment_vars):
     if actionname in action_containers and action_containers[actionname]:
         container_image = action_containers[actionname]
 
-    # Determine entry point based on function type
-    action_list = faasr.get("ActionList", {})
-    function_type = action_list.get(actionname, {}).get("Type", "R")
-
-    # if function_type == "Python":
-    # entry_command = "python3 /action/faasr_start_invoke_github_actions.py"
-    # else:  # Default to R
-    # entry_command = "Rscript /action/faasr_start_invoke_slurm.R"
-
     entry_command = "python3 /action/faasr_start_invoke_github_actions.py"
 
     env_exports = ""

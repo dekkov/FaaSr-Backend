@@ -200,9 +200,10 @@ class FaaSrPayload:
         # Only generate if not already present
         if not self.get("InvocationTimestamp"):
             current_timestamp = datetime.now()
-            iso_timestamp = current_timestamp.isoformat()
-            self["InvocationTimestamp"] = iso_timestamp
-            logger.info(f"Generated InvocationTimestamp: {iso_timestamp}")
+            default_format = "%Y-%m-%dT%H-%M-%S"
+            format_timestamp = current_timestamp.strftime(default_format)
+            self["InvocationTimestamp"] = format_timestamp
+            logger.info(f"Generated InvocationTimestamp: {format_timestamp}")
         else:
             logger.info(
                 f"Using existing InvocationTimestamp: {self['InvocationTimestamp']}"

@@ -1,14 +1,11 @@
 import logging
-import os
 import sys
 from pathlib import Path
 
 from FaaSr_py.config.debug_config import global_config
-from FaaSr_py.helpers.s3_helper_functions import (
-    get_default_log_boto3_client,
-    get_invocation_folder,
-    get_logging_server,
-)
+from FaaSr_py.helpers.s3_helper_functions import (get_default_log_boto3_client,
+                                                  get_invocation_folder,
+                                                  get_logging_server)
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +44,10 @@ def faasr_log(faasr_payload, log_message):
 
         s3_client = get_default_log_boto3_client(faasr_payload)
 
-        log_download_path = Path("tmp") / log_path
+        log_download_path = (
+            Path("./")
+            / f"{faasr_payload.log_file}-{str(faasr_payload["InvocationID"])}"
+        )
         Path(log_download_path).parent.mkdir(parents=True, exist_ok=True)
 
         bucket = faasr_payload["DataStores"][log_server_name]["Bucket"]
@@ -58,8 +58,9 @@ def faasr_log(faasr_payload, log_message):
         # Download the log if it exists
         try:
             if "Contents" in check_log_file and len(check_log_file["Contents"]) != 0:
-                if os.path.exists(log_download_path):
-                    os.remove(log_download_path)
+                if log_download_path.exists():
+                    log_download_path.unlink()
+
                 s3_client.download_file(
                     Bucket=bucket, Key=str(log_path), Filename=str(log_download_path)
                 )

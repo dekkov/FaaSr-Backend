@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 from multiprocessing import Process
@@ -10,8 +11,10 @@ import requests
 
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.engine.faasr_payload import FaaSrPayload
-from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_func_dependancy_install
-from FaaSr_py.helpers.s3_helper_functions import flush_s3_log, get_invocation_folder
+from FaaSr_py.helpers.faasr_start_invoke_helper import \
+    faasr_func_dependancy_install
+from FaaSr_py.helpers.s3_helper_functions import (flush_s3_log,
+                                                  get_invocation_folder)
 from FaaSr_py.s3_api import faasr_put_file
 from FaaSr_py.server.faasr_server import run_server, wait_for_server_start
 
@@ -65,8 +68,21 @@ class Executor:
                 func_res = py_func.exitcode
             elif func_type == "R":
                 # path to R function handler
-                r_entry_dir = Path(__file__).parent.parent / "client"
-                r_entry_path = r_entry_dir / "r_user_func_entry.R"
+                client_dir = Path(__file__).parent.parent / "client"
+
+                r_files = [
+                    client_dir / "r_user_func_entry.R",
+                    client_dir / "r_func_helper.R",
+                    client_dir / "r_client_stubs.R",
+                ]
+
+                # Ensure /tmp exists
+                os.makedirs("/tmp", exist_ok=True)
+
+                # Copy each file
+                for src in r_files:
+                    dst = Path("/tmp") / src.name
+                    shutil.copy(src, dst)
 
                 logger.info(f"Starting function: {func_name} (R)")
 
@@ -75,12 +91,12 @@ class Executor:
                     r_func = subprocess.run(
                         [
                             "Rscript",
-                            str(r_entry_path),
+                            "/tmp/r_user_func_entry.R",
                             func_name,
                             json.dumps(user_args),
                             self.faasr["InvocationID"],
                         ],
-                        cwd=r_entry_dir,
+                        cwd="/tmp",
                     )
                 except Exception as e:
                     logger.error(f"Error running R function: {e}")
@@ -92,7 +108,7 @@ class Executor:
 
             if func_res != 0:
                 raise RuntimeError(
-                    f"non-zero exit code ({py_func.exitcode}) from user function"
+                    f"non-zero exit code ({repr(func_res)}) from user function"
                 )
         else:
             logger.info("SKIPPING USER FUNCTION")

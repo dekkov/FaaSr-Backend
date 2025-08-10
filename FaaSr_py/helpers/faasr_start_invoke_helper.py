@@ -72,8 +72,11 @@ def faasr_get_github(faasr_source, path, token=None):
         path = None
 
     url = f"https://api.github.com/repos/{repo}/tarball"
-    tar_name = f"./tmp/{reponame}.tar.gz"
-    os.makedirs("tmp", exist_ok=True)
+    tar_name = f"/tmp/{reponame}.tar.gz"
+    parent_dir = os.path.dirname(tar_name)
+
+    if not os.path.isdir(parent_dir):
+        os.makedirs(parent_dir, exist_ok=True)
 
     headers = {
         "Accept": "application/vnd.github.v3+json",
@@ -229,25 +232,35 @@ def faasr_pip_install(package):
 
 def faasr_install_cran(package, lib_path=None):
     """
-    Installs a single cran package
+    Installs a single CRAN package non-interactively
     """
     if not package:
         logger.info("No CRAN package dependency")
+        return
+
+    logger.info(f"Installing CRAN package: {package}")
+    lib_path = lib_path or "/tmp/Rlibs"
+    os.makedirs(lib_path, exist_ok=True)
+
+    command = [
+        "Rscript",
+        "-e",
+        f'.libPaths(c("{lib_path}", .libPaths())); '
+        f'install.packages("{package}", lib="{lib_path}", '
+        f'repos="https://cloud.r-project.org", dependencies=TRUE, verbose=TRUE)',
+    ]
+
+    result = subprocess.run(command, text=True, capture_output=True)
+
+    if result.returncode != 0:
+        logger.error(
+            f"Failed to install {package}:\n"
+            f"std err: {result.stderr}\n"
+            f"std out: {result.stdout}"
+        )
+        raise RuntimeError(f"Install failed for {package}")
     else:
-        logger.info(f"Installing CRAN package {package}")
-
-        lib_path = f'"{lib_path}"' if lib_path else ".libPaths()[1]"
-
-        command = [
-            "Rscript",
-            "-e",
-            (
-                f'install.packages("{package}", '
-                f'lib={lib_path}, repos="https://cloud.r-project.org")'
-            ),
-        ]
-
-        subprocess.run(command, text=True)
+        logger.info(f"Successfully installed {package}")
 
 
 def faasr_pip_gh_install(path):
@@ -295,7 +308,11 @@ def faasr_install_git_packages(gh_packages, type, lib_path=None):
                         f'code=quote(devtools::install_github("{package}", force=TRUE)))'
                     ),
                 ]
-                subprocess.run(command, text=True)
+                res = subprocess.run(command, text=True)
+                if res.returncode != 0:
+                    logger.info("STDOUT:", res.stdout)
+                    logger.info("STDERR:", res.stderr)
+                    raise RuntimeError(f"Installation failed for {package}")
 
 
 def faasr_func_dependancy_install(faasr_source, action):
@@ -330,13 +347,26 @@ def faasr_func_dependancy_install(faasr_source, action):
                 faasr_pip_install(package)
     elif "FunctionCRANPackage" in faasr_source and func_type == "R":
         cran_packages = faasr_source["FunctionCRANPackage"].get(func_name)
+
+        lib_path = "/tmp/Rlibs"
+        os.makedirs(lib_path, exist_ok=True)
+
         if cran_packages:
             for package in cran_packages:
-                faasr_install_cran(package)
+                faasr_install_cran(package, lib_path)
+
+        logger.debug(f"Packages in /tmp/Rlibs: {os.listdir('/tmp/Rlibs')}")
 
     # install gh packages
     if "FunctionGitHubPackage" in faasr_source:
         if func_name in faasr_source["FunctionGitHubPackage"]:
             gh_packages = faasr_source["FunctionGitHubPackage"].get(func_name)
             if gh_packages:
-                faasr_install_git_packages(gh_packages, func_type)
+                if func_type == "Python":
+                    faasr_install_git_packages(gh_packages, func_type)
+                elif func_type == "R":
+                    faasr_install_git_packages(gh_packages, func_type, "/tmp/Rlibs")
+                else:
+                    err_msg = "Invalid function type: {func_type}"
+                    logger.critical(err_msg)
+                    raise RuntimeError(err_msg)

@@ -539,80 +539,103 @@ class Scheduler:
             logger.exception(f"SLURM request failed: {e}")
             sys.exit(1)
     
-    def invoke_googlecloud(self, next_function, next_server, rank_info=None):
+    def invoke_googlecloud(self, next_compute_server, function):
         """
-        Trigger a Google Cloud Run job for the next function.
+        Trigger Google Cloud Run job for next function
+        Follows the same pattern as other providers with URL + overwritten fields
+
+        Arguments:
+            next_compute_server: dict -- compute server configuration from faasr
+            function: str -- name of the function to trigger
         """
         import base64
         import requests
-        from FaaSr_py.helpers.gcp_auth import refresh_gcp_access_token
         
-        server_config = self.faasr_payload["ComputeServers"][next_server]
+        # Import the GCP auth helper (needs to be added)
+        try:
+            from FaaSr_py.helpers.gcp_auth import refresh_gcp_access_token
+        except ImportError:
+            logger.error("GCP auth helper not found - gcp_auth.py needs to be implemented")
+            sys.exit(1)
         
-        # Build endpoint URL
-        endpoint = server_config.get("Endpoint", "run.googleapis.com/v2/projects/")
+        # Get server configuration - matching other providers' style
+        endpoint = next_compute_server.get("Endpoint", "run.googleapis.com/v2/projects/")
+        namespace = next_compute_server["Namespace"]
+        region = next_compute_server["Region"]
+        
+        # Ensure endpoint has https://
         if not endpoint.startswith("https://"):
             endpoint = f"https://{endpoint}"
         
-        namespace = server_config["Namespace"]
-        region = server_config["Region"]
+        # Build the full URL for Cloud Run job execution
+        job_url = f"{endpoint}{namespace}/locations/{region}/jobs/{function}:run"
         
-        # Construct full URL for Cloud Run job execution
-        job_url = f"{endpoint}{namespace}/locations/{region}/jobs/{next_function}:run"
-        
+        # Build overwritten fields - matching GitHub Actions pattern
         overwritten = {}
-        
-        # Always update FunctionInvoke
-        overwritten["FunctionInvoke"] = next_function
+        overwritten["FunctionInvoke"] = function
         
         # Add InvocationID if present
-        if self.faasr_payload.get("InvocationID"):
-            overwritten["InvocationID"] = self.faasr_payload["InvocationID"]
+        if self.faasr.get("InvocationID"):
+            overwritten["InvocationID"] = self.faasr["InvocationID"]
         
-        # Add InvocationTimestamp if present
-        if self.faasr_payload.get("InvocationTimestamp"):
-            overwritten["InvocationTimestamp"] = self.faasr_payload["InvocationTimestamp"]
+        # Add InvocationTimestamp if present  
+        if self.faasr.get("InvocationTimestamp"):
+            overwritten["InvocationTimestamp"] = self.faasr["InvocationTimestamp"]
         
         # Add FunctionResult if present
-        if self.faasr_payload.get("FunctionResult"):
-            overwritten["FunctionResult"] = self.faasr_payload["FunctionResult"]
+        if self.faasr.get("FunctionResult"):
+            overwritten["FunctionResult"] = self.faasr["FunctionResult"]
         
-        # Handle ranking if specified
-        if rank_info:
-            rank, rank_num = rank_info
-            if "ActionList" not in overwritten:
-                overwritten["ActionList"] = {}
-            overwritten["ActionList"][next_function] = {
-                "Rank": f"{rank}/{rank_num}"
-            }
+        # Handle FunctionRank if it exists (for ranked invocations)
+        if self.faasr.get("FunctionRank"):
+            overwritten["FunctionRank"] = self.faasr["FunctionRank"]
         
         # Handle UseSecretStore=False case
-        use_secret_store = server_config.get("UseSecretStore", True)
+        use_secret_store = next_compute_server.get("UseSecretStore", True)
         if not use_secret_store:
-            # Include credentials in overwritten for next function
+            # Include credentials in overwritten
             if "ComputeServers" not in overwritten:
                 overwritten["ComputeServers"] = {}
-            overwritten["ComputeServers"][next_server] = {
-                "ClientEmail": server_config.get("ClientEmail"),
-                "SecretKey": server_config.get("SecretKey"),
-                "TokenUri": server_config.get("TokenUri"),
-                "AccessKey": server_config.get("AccessKey")  # Include if already refreshed
-            }
+            
+            # Get the server name by finding which server matches this config
+            server_name = None
+            for name, config in self.faasr["ComputeServers"].items():
+                if config == next_compute_server:
+                    server_name = name
+                    break
+            
+            if server_name:
+                overwritten["ComputeServers"][server_name] = {
+                    "ClientEmail": next_compute_server.get("ClientEmail"),
+                    "SecretKey": next_compute_server.get("SecretKey"),  
+                    "TokenUri": next_compute_server.get("TokenUri")
+                }
         
-        # Refresh access token for THIS invocation
+        # Refresh access token
         try:
-            access_token = refresh_gcp_access_token(self.faasr_payload, next_server)
+            # Need to find server name for auth
+            server_name = None
+            for name, config in self.faasr["ComputeServers"].items():
+                if config == next_compute_server:
+                    server_name = name
+                    break
+            
+            if not server_name:
+                logger.error("Could not find server name for GCP authentication")
+                sys.exit(1)
+                
+            access_token = refresh_gcp_access_token(self.faasr, server_name)
         except Exception as e:
             logger.error(f"Failed to refresh GCP access token: {e}")
-            return
+            sys.exit(1)
         
-        # Build the payload structure that matches the pattern
+        # Build payload matching other providers' pattern
         payload_data = {
-            "url": self.faasr_payload.url,  # URL to base workflow
-            "overwritten": overwritten      # Only modified fields
+            "url": self.faasr.url,
+            "overwritten": overwritten
         }
         
-        # Encode payload for transmission
+        # Encode payload
         payload_json = json.dumps(payload_data)
         encoded_payload = base64.b64encode(payload_json.encode()).decode()
         
@@ -632,28 +655,40 @@ class Scheduler:
             "Authorization": f"Bearer {access_token}"
         }
         
-        # SSL verification
-        ssl_verify = server_config.get("SSL", True)
-        if isinstance(ssl_verify, str):
-            ssl_verify = ssl_verify.upper() == "TRUE"
+        # Handle SSL verification - matching OpenWhisk pattern
+        ssl_verify = True
+        if "SSL" in next_compute_server:
+            ssl_str = str(next_compute_server["SSL"]).lower()
+            ssl_verify = ssl_str != "false"
         
-        # Send request
+        # Send request - matching error handling pattern of other providers
         try:
             response = requests.post(
-                job_url,
+                url=job_url,
                 headers=headers,
                 json=body,
                 verify=ssl_verify,
                 timeout=30
             )
-            
-            if response.status_code in [200, 202]:
-                logger.info(f"GoogleCloud: Successfully invoked {next_function}")
-            else:
-                logger.error(f"GoogleCloud: Error invoking {next_function}: {response.text}")
+        except requests.exceptions.ConnectionError:
+            logger.exception(stack_info=True)
+            sys.exit(1)
+        except Exception:
+            err_msg = f"GoogleCloud: Error invoking {self.faasr['FunctionInvoke']}"
+            logger.exception(err_msg, stack_info=True)
+            sys.exit(1)
         
-        except Exception as e:
-            logger.error(f"GoogleCloud: Exception invoking {next_function}: {e}")
+        # Handle response - matching other providers' pattern
+        if response.status_code == 200 or response.status_code == 202:
+            succ_msg = f"GoogleCloud: Successfully invoked {self.faasr['FunctionInvoke']}"
+            logger.info(succ_msg)
+        else:
+            err_msg = (
+                f"GoogleCloud: Error invoking {self.faasr['FunctionInvoke']}: "
+                f"status code: {response.status_code}, response: {response.text}"
+            )
+            logger.error(err_msg)
+            sys.exit(1)
 
 def contains_dict(list_obj):
     """

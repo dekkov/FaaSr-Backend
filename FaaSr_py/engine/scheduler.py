@@ -108,6 +108,9 @@ class Scheduler:
                         self.invoke_gh(next_compute_server, function)
                     case "SLURM":
                         self.invoke_slurm(next_compute_server, function)
+                    case "GoogleCloud":
+                        self.invoke_googlecloud(next_compute_server,function)
+                    
             else:
                 msg = f"SIMULATED TRIGGER: {function}"
                 if rank_num > 1:
@@ -535,7 +538,122 @@ class Scheduler:
         except Exception as e:
             logger.exception(f"SLURM request failed: {e}")
             sys.exit(1)
-
+    
+    def invoke_googlecloud(self, next_function, next_server, rank_info=None):
+        """
+        Trigger a Google Cloud Run job for the next function.
+        """
+        import base64
+        import requests
+        from FaaSr_py.helpers.gcp_auth import refresh_gcp_access_token
+        
+        server_config = self.faasr_payload["ComputeServers"][next_server]
+        
+        # Build endpoint URL
+        endpoint = server_config.get("Endpoint", "run.googleapis.com/v2/projects/")
+        if not endpoint.startswith("https://"):
+            endpoint = f"https://{endpoint}"
+        
+        namespace = server_config["Namespace"]
+        region = server_config["Region"]
+        
+        # Construct full URL for Cloud Run job execution
+        job_url = f"{endpoint}{namespace}/locations/{region}/jobs/{next_function}:run"
+        
+        overwritten = {}
+        
+        # Always update FunctionInvoke
+        overwritten["FunctionInvoke"] = next_function
+        
+        # Add InvocationID if present
+        if self.faasr_payload.get("InvocationID"):
+            overwritten["InvocationID"] = self.faasr_payload["InvocationID"]
+        
+        # Add InvocationTimestamp if present
+        if self.faasr_payload.get("InvocationTimestamp"):
+            overwritten["InvocationTimestamp"] = self.faasr_payload["InvocationTimestamp"]
+        
+        # Add FunctionResult if present
+        if self.faasr_payload.get("FunctionResult"):
+            overwritten["FunctionResult"] = self.faasr_payload["FunctionResult"]
+        
+        # Handle ranking if specified
+        if rank_info:
+            rank, rank_num = rank_info
+            if "ActionList" not in overwritten:
+                overwritten["ActionList"] = {}
+            overwritten["ActionList"][next_function] = {
+                "Rank": f"{rank}/{rank_num}"
+            }
+        
+        # Handle UseSecretStore=False case
+        use_secret_store = server_config.get("UseSecretStore", True)
+        if not use_secret_store:
+            # Include credentials in overwritten for next function
+            if "ComputeServers" not in overwritten:
+                overwritten["ComputeServers"] = {}
+            overwritten["ComputeServers"][next_server] = {
+                "ClientEmail": server_config.get("ClientEmail"),
+                "SecretKey": server_config.get("SecretKey"),
+                "TokenUri": server_config.get("TokenUri"),
+                "AccessKey": server_config.get("AccessKey")  # Include if already refreshed
+            }
+        
+        # Refresh access token for THIS invocation
+        try:
+            access_token = refresh_gcp_access_token(self.faasr_payload, next_server)
+        except Exception as e:
+            logger.error(f"Failed to refresh GCP access token: {e}")
+            return
+        
+        # Build the payload structure that matches the pattern
+        payload_data = {
+            "url": self.faasr_payload.url,  # URL to base workflow
+            "overwritten": overwritten      # Only modified fields
+        }
+        
+        # Encode payload for transmission
+        payload_json = json.dumps(payload_data)
+        encoded_payload = base64.b64encode(payload_json.encode()).decode()
+        
+        # Build request body for Cloud Run
+        body = {
+            "overrides": {
+                "containerOverrides": [{
+                    "args": encoded_payload
+                }]
+            }
+        }
+        
+        # Set headers
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}"
+        }
+        
+        # SSL verification
+        ssl_verify = server_config.get("SSL", True)
+        if isinstance(ssl_verify, str):
+            ssl_verify = ssl_verify.upper() == "TRUE"
+        
+        # Send request
+        try:
+            response = requests.post(
+                job_url,
+                headers=headers,
+                json=body,
+                verify=ssl_verify,
+                timeout=30
+            )
+            
+            if response.status_code in [200, 202]:
+                logger.info(f"GoogleCloud: Successfully invoked {next_function}")
+            else:
+                logger.error(f"GoogleCloud: Error invoking {next_function}: {response.text}")
+        
+        except Exception as e:
+            logger.error(f"GoogleCloud: Exception invoking {next_function}: {e}")
 
 def contains_dict(list_obj):
     """

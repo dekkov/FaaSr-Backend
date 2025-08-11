@@ -2,6 +2,7 @@ import json
 import logging
 import re
 import sys
+import os
 
 import boto3
 import requests
@@ -541,24 +542,12 @@ class Scheduler:
     
     def invoke_googlecloud(self, next_compute_server, function):
         """
-        Trigger Google Cloud Run job for next function
-        Follows the same pattern as other providers with URL + overwritten fields
-
-        Arguments:
-            next_compute_server: dict -- compute server configuration from faasr
-            function: str -- name of the function to trigger
+        Trigger Google Cloud Run job using GitHub Actions style with environment variables
         """
-        import base64
-        import requests
+
+        from FaaSr_py.helpers.gcp_auth import (refresh_gcp_access_token)
         
-        # Import the GCP auth helper (needs to be added)
-        try:
-            from FaaSr_py.helpers.gcp_auth import refresh_gcp_access_token
-        except ImportError:
-            logger.error("GCP auth helper not found - gcp_auth.py needs to be implemented")
-            sys.exit(1)
-        
-        # Get server configuration - matching other providers' style
+        # Get server configuration
         endpoint = next_compute_server.get("Endpoint", "run.googleapis.com/v2/projects/")
         namespace = next_compute_server["Namespace"]
         region = next_compute_server["Region"]
@@ -613,7 +602,7 @@ class Scheduler:
         
         # Refresh access token
         try:
-            # Need to find server name for auth
+            # Find server name for auth
             server_name = None
             for name, config in self.faasr["ComputeServers"].items():
                 if config == next_compute_server:
@@ -629,21 +618,41 @@ class Scheduler:
             logger.error(f"Failed to refresh GCP access token: {e}")
             sys.exit(1)
         
-        # Build payload matching other providers' pattern
-        payload_data = {
-            "url": self.faasr.url,
-            "overwritten": overwritten
-        }
+        # Create environment variables exactly like GitHub Actions
+        json_overwritten = json.dumps(overwritten)
         
-        # Encode payload
-        payload_json = json.dumps(payload_data)
-        encoded_payload = base64.b64encode(payload_json.encode()).decode()
+        # Define environment variables
+        env_vars = [
+            {
+                "name": "PAYLOAD_URL",
+                "value": self.faasr.url
+            },
+            {
+                "name": "OVERWRITTEN",
+                "value": json_overwritten
+            }
+        ]
+        
+        # Add TOKEN env var for GitHub authentication
+        if "TOKEN" in os.environ:
+            env_vars.append({
+                "name": "TOKEN",
+                "value": os.environ["TOKEN"]
+            })
+        
+        # Add secrets if available
+        if use_secret_store:
+            if "SECRET_PAYLOAD" in os.environ:
+                env_vars.append({
+                    "name": "SECRET_PAYLOAD",
+                    "value": os.environ["SECRET_PAYLOAD"]
+                })
         
         # Build request body for Cloud Run
         body = {
             "overrides": {
                 "containerOverrides": [{
-                    "args": encoded_payload
+                    "env": env_vars
                 }]
             }
         }
@@ -655,13 +664,13 @@ class Scheduler:
             "Authorization": f"Bearer {access_token}"
         }
         
-        # Handle SSL verification - matching OpenWhisk pattern
+        # SSL verification (same as in the original code)
         ssl_verify = True
         if "SSL" in next_compute_server:
             ssl_str = str(next_compute_server["SSL"]).lower()
             ssl_verify = ssl_str != "false"
         
-        # Send request - matching error handling pattern of other providers
+        # Send request
         try:
             response = requests.post(
                 url=job_url,
@@ -670,24 +679,17 @@ class Scheduler:
                 verify=ssl_verify,
                 timeout=30
             )
-        except requests.exceptions.ConnectionError:
-            logger.exception(stack_info=True)
-            sys.exit(1)
-        except Exception:
-            err_msg = f"GoogleCloud: Error invoking {self.faasr['FunctionInvoke']}"
-            logger.exception(err_msg, stack_info=True)
-            sys.exit(1)
-        
-        # Handle response - matching other providers' pattern
-        if response.status_code == 200 or response.status_code == 202:
-            succ_msg = f"GoogleCloud: Successfully invoked {self.faasr['FunctionInvoke']}"
-            logger.info(succ_msg)
-        else:
-            err_msg = (
-                f"GoogleCloud: Error invoking {self.faasr['FunctionInvoke']}: "
-                f"status code: {response.status_code}, response: {response.text}"
-            )
-            logger.error(err_msg)
+            
+            # Handle response
+            if response.status_code == 200 or response.status_code == 202:
+                succ_msg = f"GoogleCloud: Successfully invoked {function}"
+                logger.info(succ_msg)
+            else:
+                err_msg = f"GoogleCloud: Error invoking {function}: {response.status_code}, {response.text}"
+                logger.error(err_msg)
+                sys.exit(1)
+        except Exception as e:
+            logger.exception(f"GoogleCloud: Request failed: {e}")
             sys.exit(1)
 
 def contains_dict(list_obj):

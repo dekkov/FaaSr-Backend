@@ -1,5 +1,3 @@
-# In FaaSr_py/helpers/gcp_auth.py (new file)
-
 import json
 import time
 import base64

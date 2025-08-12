@@ -635,6 +635,8 @@ class Scheduler:
 
         # Add secrets if available
         if use_secret_store:
+            env_vars.append({"name": "GCP_SECRET_NAME", "value": "faasr-secrets"})
+
             if "SECRET_PAYLOAD" in os.environ:
                 env_vars.append(
                     {"name": "SECRET_PAYLOAD", "value": os.environ["SECRET_PAYLOAD"]}

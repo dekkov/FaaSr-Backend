@@ -63,9 +63,11 @@ class Config:
         self.SKIP_SCHEMA_VALIDATE = self.__dict__["_SKIP_SCHEMA_VALIDATE"]
         self.SKIP_WF_VALIDATE = self.__dict__["_SKIP_WF_VALIDATE"]
         self.SKIP_REAL_TRIGGERS = self.__dict__["_SKIP_REAL_TRIGGERS"]
+        self.READABLE_LOGS = self.__dict__["_READABLE_LOGS"]
         self.SKIP_USER_FUNCTION = self.__dict__["_SKIP_USER_FUNCTION"]
         self.USE_LOCAL_USER_FUNC = self.__dict__["_USE_LOCAL_USER_FUNC"]
         self.LOCAL_FUNCTION_PATH = self.__dict__["_LOCAL_FUNCTION_PATH"]
+        self.LOCAL_FUNCTION_NAME = self.__dict__["_LOCAL_FUNCTION_NAME"]
         self.LOCAL_FUNC_ARGS = self.__dict__["_LOCAL_FUNC_ARGS"]
         self.USE_LOCAL_FILE_SYSTEM = self.__dict__["_USE_LOCAL_FILE_SYSTEM"]
         self.LOCAL_FILE_SYSTEM_DIR = self.__dict__["_LOCAL_FILE_SYSTEM_DIR"]
@@ -134,7 +136,7 @@ class Config:
 
     @READABLE_LOGS.setter
     def READABLE_LOGS(self, value):
-        if not isinstance(self, bool):
+        if not isinstance(value, bool):
             raise TypeError("READABLE_LOGS must be a boolean")
         self._write_config("READABLE_LOGS", value)
 

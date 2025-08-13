@@ -13,9 +13,11 @@ from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.helpers.faasr_lock import faasr_acquire, faasr_release
 from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_get_github_raw
 from FaaSr_py.helpers.graph_functions import check_dag, validate_json
-from FaaSr_py.helpers.s3_helper_functions import (get_default_log_boto3_client,
-                                                  get_invocation_folder,
-                                                  get_logging_server)
+from FaaSr_py.helpers.s3_helper_functions import (
+    get_default_log_boto3_client,
+    get_invocation_folder,
+    get_logging_server,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +219,7 @@ class FaaSrPayload:
             # Use format to derive ID from timestamp
             date_format = self["InvocationIDFromDate"]
             timestamp_str = self["InvocationTimestamp"]
-            current_timestamp = datetime.fromisoformat(timestamp_str)
+            current_timestamp = datetime.strptime(timestamp_str, "%Y-%m-%dT%H-%M-%S")
 
             try:
                 derived_id = current_timestamp.strftime(date_format)

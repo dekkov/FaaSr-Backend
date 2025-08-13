@@ -11,10 +11,8 @@ import requests
 
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.engine.faasr_payload import FaaSrPayload
-from FaaSr_py.helpers.faasr_start_invoke_helper import \
-    faasr_func_dependancy_install
-from FaaSr_py.helpers.s3_helper_functions import (flush_s3_log,
-                                                  get_invocation_folder)
+from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_func_dependancy_install
+from FaaSr_py.helpers.s3_helper_functions import flush_s3_log, get_invocation_folder
 from FaaSr_py.s3_api import faasr_put_file
 from FaaSr_py.server.faasr_server import run_server, wait_for_server_start
 
@@ -35,7 +33,7 @@ class Executor:
         self.server = None
         self.packages = []
 
-    def call(self, action_name):
+    def _call(self, action_name):
         """
         Runs a user function given action name
 
@@ -44,7 +42,7 @@ class Executor:
         """
         func_name = self.faasr["ActionList"][action_name]["FunctionName"]
         func_type = self.faasr["ActionList"][action_name]["Type"]
-        user_args = self.get_user_function_args()
+        user_args = self._get_user_function_args(action_name)
 
         if not global_config.SKIP_USER_FUNCTION:
             if func_type == "Python":
@@ -115,20 +113,18 @@ class Executor:
 
         # At this point, the action has finished the invocation of the user Function
         # We flag this by uploading a file with the name
-        # FunctionInvoke.done to the S3 logs folder
+        # {action}.done to the S3 logs folder
         # Check if directory already exists. If not, create one
         log_folder = get_invocation_folder(self.faasr)
-        log_folder_path = f"/tmp/{log_folder}/{self.faasr['FunctionInvoke']}/flag/"
+        log_folder_path = f"/tmp/{log_folder}/{action_name}/flag/"
 
         if not os.path.isdir(log_folder_path):
             os.makedirs(log_folder_path)
 
         if "FunctionRank" in self.faasr:
-            file_name = (
-                f"{self.faasr['FunctionInvoke']}.{self.faasr["FunctionRank"]}.done"
-            )
+            file_name = f"{action_name}.{self.faasr["FunctionRank"]}.done"
         else:
-            file_name = f"{self.faasr['FunctionInvoke']}.done"
+            file_name = f"{action_name}.done"
 
         # Set content of .done file to True
         with open(f"{log_folder_path}/{file_name}", "w") as f:
@@ -160,8 +156,8 @@ class Executor:
 
         # Run function
         try:
-            self.host_server_api(start_time=start_time)
-            self.call(action_name)
+            self._host_server_api(start_time=start_time)
+            self._call(action_name)
             function_result = self.get_function_return()
         except Exception as e:
             if isinstance(e, SystemExit):
@@ -173,7 +169,7 @@ class Executor:
             self.terminate_server()
         return function_result
 
-    def host_server_api(self, start_time, port=8000):
+    def _host_server_api(self, start_time, port=8000):
         """
         Starts RPC server for serverside API
 
@@ -199,17 +195,14 @@ class Executor:
             logger.error(err_msg)
             sys.exit(1)
 
-    def get_user_function_args(self):
+    def _get_user_function_args(self, action_name):
         """
         Returns user function arguments
 
         Returns:
             dict -- user function arguments
         """
-
-        user_action = self.faasr["FunctionInvoke"]
-
-        args = self.faasr["ActionList"][user_action]["Arguments"]
+        args = self.faasr["ActionList"][action_name]["Arguments"]
         if args is None:
             return {}
         else:
@@ -237,7 +230,7 @@ class Executor:
             if return_val.get("Message"):
                 err_msg = f"{return_val["Message"]}"
             else:
-                err_msg = "Unkown error while getting user function args"
+                err_msg = "Unkown error while getting user function return"
             logger.error(err_msg, stack_info=True)
             raise RuntimeError(err_msg)
 

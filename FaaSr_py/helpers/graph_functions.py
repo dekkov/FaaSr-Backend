@@ -114,6 +114,11 @@ def build_adjacency_graph(payload):
                         process_action(action)
             else:
                 process_action(child)
+
+    for func in adj_graph:
+        if func not in ranks:
+            ranks[func] = 0
+
     return (adj_graph, ranks)
 
 
@@ -146,13 +151,10 @@ def check_dag(faasr_payload):
     # Initialize empty visited set
     visited = set()
 
-    # Initialize predecessor list
-    pre = predecessors_list(adj_graph)
-
     # Find initial function in the graph
     start = False
     for func in faasr_payload["ActionList"]:
-        if len(pre[func]) == 0:
+        if ranks[func] == 0:
             start = True
             # This function stores the first function with no predecessors
             # In the cases where there is multiple functions with no
@@ -174,6 +176,9 @@ def check_dag(faasr_payload):
         if func.split(".")[0] not in visited:
             logger.error(f"Unreachable state found: {func}")
             sys.exit(1)
+
+    # Initialize predecessor list
+    pre = predecessors_list(adj_graph)
 
     curr_pre = pre[faasr_payload["FunctionInvoke"]]
     real_pre = []

@@ -324,10 +324,16 @@ class Scheduler:
         # Create headers for POST
         headers = {"accept": "application/json", "Content-Type": "application/json"}
 
-        # to-do:
-        # invoke should take URL of payload & overwritten fields (not payload itself)
-        # as input, and secrets if "UseSecretStore" is False for next_compute_server
-        payload_dict = self.faasr.get_complete_workflow()
+        overwritten_fields = self.faasr.overwritten
+
+        overwritten_fields["ComputeServers"] = self.faasr["ComputeServers"]
+        overwritten_fields["DataStores"] = self.faasr["DataStores"]
+
+
+        payload_dict = {
+                "OVERWRITTEN": overwritten_fields,
+                "PAYLOAD_URL": self.faasr.url
+        }
         # Create body for POST
         json_payload = json.dumps(payload_dict)
 
@@ -338,10 +344,11 @@ class Scheduler:
                 auth=(api_key[0], api_key[1]),
                 data=json_payload,
                 headers=headers,
-                verify=ssl,
+                verify=False,
             )
-        except requests.exceptions.ConnectionError:
-            logger.exception(stack_info=True)
+        except requests.exceptions.ConnectionError as connectionErr:
+            err_msg = f"Openwhisk: ConnectionError: {connectionErr}"
+            logger.exception(err_msg, stack_info=True)
             sys.exit(1)
         except Exception:
             err_msg = f"OpenWhisk: Error invoking {self.faasr['FunctionInvoke']}"

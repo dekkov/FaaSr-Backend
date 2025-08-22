@@ -180,6 +180,17 @@ def check_dag(faasr_payload):
     # Initialize predecessor list
     pre = predecessors_list(adj_graph)
 
+    # Ensure that no ranked function invokes another ranked function
+    for func, p in pre.items():
+        if ranks[func] > 1:
+            for pre_f in p:
+                if ranks[pre_f] > 1:
+                    logger.error(
+                        "Function with rank cannot have predecessor with rank"
+                        f" - offending functions: {func}({ranks[func]}) and {pre_f}({ranks[pre_f]})"
+                    )
+                    sys.exit(1)
+
     curr_pre = pre[faasr_payload["FunctionInvoke"]]
     real_pre = []
     for p in curr_pre:

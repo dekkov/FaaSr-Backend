@@ -93,6 +93,12 @@ class FaaSrPayload:
     def __it__(self):
         return iter(self.get_complete_workflow().items())
 
+    def remove(self, key):
+        if key in self._base_workflow:
+            del self._base_workflow[key]
+        if key in self._overwritten:
+            del self._overwritten[key]
+
     def get(self, key, default=None):
         if key in self._overwritten:
             return self._overwritten[key]
@@ -252,7 +258,6 @@ class FaaSrPayload:
 
         # Create invocation ID if one is not already present
         if not self["InvocationID"] or self["InvocationID"].strip() == "":
-            print("reached here")
             # ID = uuid.uuid4()
             # self["InvocationID"] = str(ID)
             self._generate_invocation_id()
@@ -344,7 +349,7 @@ class FaaSrPayload:
                 # a predecessor and must abort
                 if done_file not in s3_object_keys:
                     logger.error(
-                        f"Missing .done file for predecessor: {func} — aborting."
+                        f"Missing .done file for predecessor: {func} — aborting"
                     )
                     sys.exit(0)
 

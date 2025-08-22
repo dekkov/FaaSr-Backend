@@ -111,10 +111,14 @@ class Executor:
         else:
             logger.info("SKIPPING USER FUNCTION")
 
-        # At this point, the action has finished the invocation of the user Function
-        # We flag this by uploading a file with the name
-        # {action}.done to the S3 logs folder
-        # Check if directory already exists. If not, create one
+        self._make_done(action_name)
+
+    def _make_done(self, action_name):
+        """
+        At this point, the action has finished the invocation of the user Function
+        We flag this by uploading a file with the name {action}.done to the S3 logs folder
+        Check if directory already exists. If not, create one
+        """
         log_folder = get_invocation_folder(self.faasr)
         log_folder_path = f"/tmp/{log_folder}/{action_name}/flag/"
 

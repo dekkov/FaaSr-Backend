@@ -83,4 +83,6 @@ def faasr_log(faasr_payload, log_message):
             logger.error(f"Error reuploading log file: {e}")
             sys.exit(1)
 
+        log_download_path.unlink()
+
         logger.debug("Log succesfully uploaded")

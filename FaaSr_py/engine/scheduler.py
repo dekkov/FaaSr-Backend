@@ -6,7 +6,6 @@ import sys
 
 import boto3
 import requests
-
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.engine.faasr_payload import FaaSrPayload
 
@@ -329,10 +328,9 @@ class Scheduler:
         overwritten_fields["ComputeServers"] = self.faasr["ComputeServers"]
         overwritten_fields["DataStores"] = self.faasr["DataStores"]
 
-
         payload_dict = {
-                "OVERWRITTEN": overwritten_fields,
-                "PAYLOAD_URL": self.faasr.url
+            "OVERWRITTEN": overwritten_fields,
+            "PAYLOAD_URL": self.faasr.url,
         }
         # Create body for POST
         json_payload = json.dumps(payload_dict)
@@ -344,7 +342,7 @@ class Scheduler:
                 auth=(api_key[0], api_key[1]),
                 data=json_payload,
                 headers=headers,
-                verify=False,
+                verify=ssl,
             )
         except requests.exceptions.ConnectionError as connectionErr:
             err_msg = f"Openwhisk: ConnectionError: {connectionErr}"

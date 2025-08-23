@@ -11,8 +11,10 @@ import requests
 
 from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.engine.faasr_payload import FaaSrPayload
-from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_func_dependancy_install
-from FaaSr_py.helpers.s3_helper_functions import flush_s3_log, get_invocation_folder
+from FaaSr_py.helpers.faasr_start_invoke_helper import \
+    faasr_func_dependancy_install
+from FaaSr_py.helpers.s3_helper_functions import (flush_s3_log,
+                                                  get_invocation_folder)
 from FaaSr_py.s3_api import faasr_put_file
 from FaaSr_py.server.faasr_server import run_server, wait_for_server_start
 
@@ -106,7 +108,7 @@ class Executor:
 
             if func_res != 0:
                 raise RuntimeError(
-                    f"non-zero exit code ({repr(func_res)}) from user function"
+                    f"non-zero exit code ({func_res!r}) from user function"
                 )
         else:
             logger.info("SKIPPING USER FUNCTION")

@@ -13,11 +13,9 @@ from FaaSr_py.config.debug_config import global_config
 from FaaSr_py.helpers.faasr_lock import faasr_acquire, faasr_release
 from FaaSr_py.helpers.faasr_start_invoke_helper import faasr_get_github_raw
 from FaaSr_py.helpers.graph_functions import check_dag, validate_json
-from FaaSr_py.helpers.s3_helper_functions import (
-    get_default_log_boto3_client,
-    get_invocation_folder,
-    get_logging_server,
-)
+from FaaSr_py.helpers.s3_helper_functions import (get_default_log_boto3_client,
+                                                  get_invocation_folder,
+                                                  get_logging_server)
 
 logger = logging.getLogger(__name__)
 
@@ -170,10 +168,6 @@ class FaaSrPayload:
             # If the region is empty, then use defualt 'us-east-1'
             if not server_region:
                 self["DataStores"][server]["Region"] = "us-east-1"
-
-            if self["DataStores"][server].get("Anonymous", False):
-                # Handle anonymous access (not yet implemented)
-                print("anonymous param not implemented")
 
             if server_endpoint:
                 s3_client = boto3.client(

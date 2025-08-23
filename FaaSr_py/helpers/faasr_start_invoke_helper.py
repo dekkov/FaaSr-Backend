@@ -315,6 +315,26 @@ def faasr_install_git_packages(gh_packages, type, lib_path=None):
                     raise RuntimeError(f"Installation failed for {package}")
 
 
+def copy_local_files(faasr_source, gits):
+    """Copies local files to /tmp/functions/[InvocationID]"""
+    if isinstance(gits, str):
+        gits = [gits]
+
+    for f in gits:
+        if os.path.isfile(f):
+            func_folder = f"/tmp/functions/{faasr_source['InvocationID']}"
+
+            dest = os.path.join(func_folder, f)
+
+            if not os.path.isdir(os.path.dirname(dest)):
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+
+            shutil.copy(f, dest)
+        else:
+            logger.error(f"FunctionLocalFile not found: {f}")
+            sys.exit(1)
+
+
 def faasr_func_dependancy_install(faasr_source, action):
     """
     Installs the dependencies for an action's function
@@ -335,16 +355,26 @@ def faasr_func_dependancy_install(faasr_source, action):
 
     if not global_config.USE_LOCAL_USER_FUNC:
         # get files from git repo
-        gits = faasr_source["FunctionGitRepo"].get(func_name)
+        remote_gits = faasr_source["FunctionGitRepo"].get(func_name)
+        local_gits = faasr_source.get("FunctionLocalFile").get(func_name)
 
-        # get gh functions
-        faasr_install_git_repos(faasr_source, func_type, gits, token)
+        if remote_gits and local_gits:
+            err_msg = "Cannot have both FunctionGitRepo and FunctionLocalFile"
+            logger.critical(err_msg)
+            raise RuntimeError(err_msg)
+
+        if remote_gits:
+            # get gh functions
+            faasr_install_git_repos(faasr_source, func_type, remote_gits, token)
+        else:
+            copy_local_files(faasr_source, local_gits)
 
     if "PyPIPackageDownloads" in faasr_source and func_type == "Python":
         pypi_packages = faasr_source["PyPIPackageDownloads"].get(func_name)
         if pypi_packages:
             for package in pypi_packages:
                 faasr_pip_install(package)
+
     elif "FunctionCRANPackage" in faasr_source and func_type == "R":
         cran_packages = faasr_source["FunctionCRANPackage"].get(func_name)
 

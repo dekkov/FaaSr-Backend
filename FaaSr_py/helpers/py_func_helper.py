@@ -74,7 +74,7 @@ def faasr_import_function_walk(func_name, directory="."):
     if directory not in sys.path:
         sys.path.insert(0, directory)
 
-    for root, dirs, files in os.walk(directory):
+    for root, _, files in os.walk(directory):
         py_files = [file for file in files if file.endswith(".py")]
         for f in py_files:
             if f not in ignore_files:

@@ -376,12 +376,10 @@ class Scheduler:
             function: str -- name of the function to invoke
         """
 
-        from FaaSr_py.helpers.slurm_helper import (
-            create_job_script,
-            get_resource_requirements,
-            make_slurm_request,
-            validate_jwt_token,
-        )
+        from FaaSr_py.helpers.slurm_helper import (create_job_script,
+                                                   get_resource_requirements,
+                                                   make_slurm_request,
+                                                   validate_jwt_token)
 
         # Get server configuration
         server_info = next_compute_server

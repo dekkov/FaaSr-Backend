@@ -310,7 +310,7 @@ class FaaSrPayload:
         if global_config.USE_LOCAL_FILE_SYSTEM:
             log_folder = Path(global_config.LOCAL_FILE_SYSTEM_DIR) / id_folder
             for func in pre:
-                done_file = log_folder / f"{func}.done"
+                done_file = log_folder / f"function_completions/{func}.done"
                 if not done_file.exists():
                     logger.error(
                         f"Missing .done file for predecessor: {func} — aborting."
@@ -342,7 +342,7 @@ class FaaSrPayload:
 
             for func in pre:
                 # check if all of the predecessor func.done objects exist
-                done_file = f"{id_folder}/{func}.done"
+                done_file = f"{id_folder}/function_completions/{func}.done"
 
                 # if .done does not exist for a function,
                 # then the current function is still waiting for
@@ -374,7 +374,7 @@ class FaaSrPayload:
         faasr_acquire(self)
 
         random_number = random.randint(1, 2**31 - 1)
-        candidate_filename = f"{self['FunctionInvoke']}.candidate"
+        candidate_filename = f"function_completions/{self['FunctionInvoke']}.candidate"
         candidate_path = Path(id_folder) / candidate_filename
 
         if global_config.USE_LOCAL_FILE_SYSTEM:

@@ -120,15 +120,17 @@ class Executor:
         Check if directory already exists. If not, create one
         """
         log_folder = get_invocation_folder(self.faasr)
-        log_folder_path = f"/tmp/{log_folder}/{action_name}/flag/"
+        log_folder_path = f"/tmp/{log_folder}/{action_name}/flag"
 
-        if not os.path.isdir(log_folder_path):
-            os.makedirs(log_folder_path)
+        if not os.path.isdir(f"{log_folder_path}/function_completions"):
+            os.makedirs(f"{log_folder_path}/function_completions")
 
         if "FunctionRank" in self.faasr:
-            file_name = f"{action_name}.{self.faasr["FunctionRank"]}.done"
+            file_name = (
+                f"function_completions/{action_name}.{self.faasr["FunctionRank"]}.done"
+            )
         else:
-            file_name = f"{action_name}.done"
+            file_name = f"function_completions/{action_name}.done"
 
         # Set content of .done file to True
         with open(f"{log_folder_path}/{file_name}", "w") as f:

@@ -247,7 +247,7 @@ def faasr_install_cran(package, lib_path=None):
         "-e",
         f'.libPaths(c("{lib_path}", .libPaths())); '
         f'install.packages("{package}", lib="{lib_path}", '
-        f'repos="https://cloud.r-project.org", dependencies=TRUE, verbose=TRUE)',
+        f'repos="https://cloud.r-project.org", verbose=TRUE)',
     ]
 
     result = subprocess.run(command, text=True, capture_output=True)

@@ -1,13 +1,13 @@
 # What is FaaSr
 FaaSr is a serverless middleware that replaces the low level idiosyncrasies of FaaS providers with DAG defined execution graphs. With FaaSr, it is easy to switch between serverless providers, making it easy to scale workflows without needing to worry about refactoring to new platforms. 
 
-Currently, FaaSr supports GitHub actions, OpenWhisk, and AWS Lambda. Functions within workflows can be written in Python or R and are ran inside of a FaaSr container on the user’s platform of choice. Workflows leverage S3 for persistent data-storage, with a built-in API for performing I/O within user functions.
+Currently, FaaSr supports GitHub actions, OpenWhisk, AWS Lambda, SLURM and Google Cloud. Functions within workflows can be written in Python or R and are ran inside of a FaaSr container on the user’s platform of choice. Workflows leverage S3 for persistent data-storage, with a built-in API for performing I/O within user functions.
 This package provides backend tooling for DAG validation, compute server/data store checks, user package installation, function fetching and execution, workflow orchestration, and structured S3 logging. 
 
 # Using
-To use FaaSr, you simply need to create a workflow JSON (see below) and host your functions on GitHub. Then, you can register, invoke, and set triggers for your workflows using the CLI (soon).
+To use FaaSr, you simply need to create a workflow JSON (see below) and host your functions on GitHub. Then, you can register, invoke, and set triggers for your workflows using FaaSr's UI.
 
-FaaSr abstracts away S3 interactions; all you need to do is use the FaaSr API within your functions (no need to import).
+FaaSr abstracts away S3 interactions; all you need to do is use the FaaSr API within your functions.
 
 ```
 faasr_get_file(local_file*, remote_file*, server_name, local_folder, remote_folder)

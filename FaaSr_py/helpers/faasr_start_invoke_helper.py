@@ -355,8 +355,15 @@ def faasr_func_dependancy_install(faasr_source, action):
 
     if not global_config.USE_LOCAL_USER_FUNC:
         # get files from git repo
-        remote_gits = faasr_source["FunctionGitRepo"].get(func_name)
-        local_gits = faasr_source.get("FunctionLocalFile").get(func_name)
+        if "FunctionGitRepo" in faasr_source:
+            remote_gits = faasr_source["FunctionGitRepo"].get(func_name)
+        else:
+            remote_gits = None
+
+        if "FunctionLocalFile" in faasr_source:
+            local_gits = faasr_source.get("FunctionLocalFile").get(func_name)
+        else:
+            local_gits = None
 
         if remote_gits and local_gits:
             err_msg = "Cannot have both FunctionGitRepo and FunctionLocalFile"
@@ -367,16 +374,19 @@ def faasr_func_dependancy_install(faasr_source, action):
             # get gh functions
             faasr_install_git_repos(faasr_source, func_type, remote_gits, token)
         else:
+            # copy local files to /tmp/functions/{InvocationID}
             copy_local_files(faasr_source, local_gits)
 
     if "PyPIPackageDownloads" in faasr_source and func_type == "Python":
-        pypi_packages = faasr_source["PyPIPackageDownloads"].get(func_name)
-        if pypi_packages:
-            for package in pypi_packages:
-                faasr_pip_install(package)
+        if "PyPIPackageDownloads" in faasr_source and func_type == "Python":
+            pypi_packages = faasr_source["PyPIPackageDownloads"].get(func_name)
+            if pypi_packages:
+                for package in pypi_packages:
+                    faasr_pip_install(package)
 
     elif "FunctionCRANPackage" in faasr_source and func_type == "R":
-        cran_packages = faasr_source["FunctionCRANPackage"].get(func_name)
+        if "FunctionCRANPackage" in faasr_source:
+            cran_packages = faasr_source["FunctionCRANPackage"].get(func_name)
 
         lib_path = "/tmp/Rlibs"
         os.makedirs(lib_path, exist_ok=True)

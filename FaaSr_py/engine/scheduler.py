@@ -299,10 +299,10 @@ class Scheduler:
         api_key = api_key.split(":")
 
         # Check if we should use ssl
-        if "SSL" not in next_compute_server or not next_compute_server["SSL"]:
+        if "AllowSelfSignedCertificate" not in next_compute_server or not next_compute_server["AllowSelfSignedCertificate"]:
             ssl = True
         else:
-            if next_compute_server["SSL"].lower() != "false":
+            if next_compute_server["AllowSelfSignedCertificate"].lower() != "true":
                 ssl = True
             else:
                 ssl = False

@@ -298,13 +298,13 @@ class Scheduler:
         api_key = api_key.split(":")
 
         # Check if we should use ssl
-        if "AllowSelfSignedCertificate" not in next_compute_server or not next_compute_server["AllowSelfSignedCertificate"]:
+        if "AllowSelfSignedCertificate" not in next_compute_server:
             ssl = True
         else:
-            if next_compute_server["AllowSelfSignedCertificate"].lower() != "true":
-                ssl = True
-            else:
+            if next_compute_server["AllowSelfSignedCertificate"]:
                 ssl = False
+            else:
+                ssl = True
 
         # Get the namespace of the OW server
         namespace = next_compute_server["Namespace"]

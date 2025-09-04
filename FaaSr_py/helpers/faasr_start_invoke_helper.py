@@ -23,7 +23,7 @@ def faasr_get_github_clone(faasr_payload, url, base_dir=None):
         base_dir: directory to which GitHub repo should be cloned
     """
     if not base_dir:
-        base_dir = f"/tmp/functions/{faasr_payload["InvocationID"]}"
+        base_dir = f"/tmp/functions/{faasr_payload['InvocationID']}"
 
     pattern = r"([^/]+/[^/]+)\.git$"
     match = re.search(pattern, url)
@@ -38,7 +38,7 @@ def faasr_get_github_clone(faasr_payload, url, base_dir=None):
     if os.path.isdir(repo_path):
         shutil.rmtree(repo_path)
 
-    result = subprocess.run(["git", "clone", "--depth=1", url, repo_path], text=True)
+    result = subprocess.run(['git", "clone", "--depth=1", url, repo_path], text=True)
     if result.returncode != 0:
         raise RuntimeError(f"Git clone failed for {url}")
 
@@ -226,7 +226,7 @@ def faasr_pip_install(package):
     if not package:
         logger.info("No PyPI package dependency")
     else:
-        command = ["pip", "install", "--no-input", package]
+        command = ['pip", "install", "--no-input", package]
         subprocess.run(command, text=True)
 
 
@@ -278,7 +278,7 @@ def faasr_pip_gh_install(path):
     repo = f"{username}/{reponame}"
     gh_url = f"git+https://github.com/{repo}.git"
 
-    command = ["pip", "install", "--no-input", gh_url]
+    command = ['pip", "install", "--no-input", gh_url]
     subprocess.run(command, text=True)
 
 
@@ -343,7 +343,7 @@ def faasr_func_dependancy_install(faasr_source, action):
         faasr_source: faasr payload (FaaSr)
         action: name of current action
     """
-    func_type, func_name = action["Type"], action["FunctionName"]
+    func_type, func_name = action['Type'], action['FunctionName']
 
     # get token if present
     token = os.getenv("TOKEN")
@@ -356,7 +356,7 @@ def faasr_func_dependancy_install(faasr_source, action):
     if not global_config.USE_LOCAL_USER_FUNC:
         # get files from git repo
         if "FunctionGitRepo" in faasr_source:
-            remote_gits = faasr_source["FunctionGitRepo"].get(func_name)
+            remote_gits = faasr_source['FunctionGitRepo'].get(func_name)
         else:
             remote_gits = None
 
@@ -379,14 +379,14 @@ def faasr_func_dependancy_install(faasr_source, action):
 
     if "PyPIPackageDownloads" in faasr_source and func_type == "Python":
         if "PyPIPackageDownloads" in faasr_source and func_type == "Python":
-            pypi_packages = faasr_source["PyPIPackageDownloads"].get(func_name)
+            pypi_packages = faasr_source['PyPIPackageDownloads'].get(func_name)
             if pypi_packages:
                 for package in pypi_packages:
                     faasr_pip_install(package)
 
     elif "FunctionCRANPackage" in faasr_source and func_type == "R":
         if "FunctionCRANPackage" in faasr_source:
-            cran_packages = faasr_source["FunctionCRANPackage"].get(func_name)
+            cran_packages = faasr_source['FunctionCRANPackage'].get(func_name)
 
         lib_path = "/tmp/Rlibs"
         os.makedirs(lib_path, exist_ok=True)
@@ -399,8 +399,8 @@ def faasr_func_dependancy_install(faasr_source, action):
 
     # install gh packages
     if "FunctionGitHubPackage" in faasr_source:
-        if func_name in faasr_source["FunctionGitHubPackage"]:
-            gh_packages = faasr_source["FunctionGitHubPackage"].get(func_name)
+        if func_name in faasr_source['FunctionGitHubPackage']:
+            gh_packages = faasr_source['FunctionGitHubPackage'].get(func_name)
             if gh_packages:
                 if func_type == "Python":
                     faasr_install_git_packages(gh_packages, func_type)

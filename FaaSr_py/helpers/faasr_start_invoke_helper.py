@@ -38,7 +38,7 @@ def faasr_get_github_clone(faasr_payload, url, base_dir=None):
     if os.path.isdir(repo_path):
         shutil.rmtree(repo_path)
 
-    result = subprocess.run(['git", "clone", "--depth=1", url, repo_path], text=True)
+    result = subprocess.run(["git", "clone", "--depth=1", url, repo_path], text=True)
     if result.returncode != 0:
         raise RuntimeError(f"Git clone failed for {url}")
 
@@ -226,7 +226,7 @@ def faasr_pip_install(package):
     if not package:
         logger.info("No PyPI package dependency")
     else:
-        command = ['pip", "install", "--no-input", package]
+        command = ["pip", "install", "--no-input", package]
         subprocess.run(command, text=True)
 
 
@@ -278,7 +278,7 @@ def faasr_pip_gh_install(path):
     repo = f"{username}/{reponame}"
     gh_url = f"git+https://github.com/{repo}.git"
 
-    command = ['pip", "install", "--no-input", gh_url]
+    command = ["pip", "install", "--no-input", gh_url]
     subprocess.run(command, text=True)
 
 

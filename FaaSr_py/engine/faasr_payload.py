@@ -27,7 +27,7 @@ class FaaSrPayload:
     - Methods to validate the workflow, replace secrets, check S3 data stores,
     - init log, and self-abort if predecessors not done.
 
-    Top level changes (e.g. faasr_obj["FunctionInvoke"] = some_func)
+    Top level changes (e.g. faasr_obj['FunctionInvoke'] = some_func)
     are tracked in self.overwritten and the scheduler will
     propgates these changes to the next functions in the workflow
     """
@@ -59,9 +59,9 @@ class FaaSrPayload:
             raise ValueError("Payload validation error")
 
         if self.get("FunctionRank"):
-            self.log_file = f"{self["FunctionInvoke"]}({self["FunctionRank"]}).txt"
+            self.log_file = f"{self['FunctionInvoke']}({self['FunctionRank']}).txt"
         else:
-            self.log_file = f"{self["FunctionInvoke"]}.txt"
+            self.log_file = f"{self['FunctionInvoke']}.txt"
 
     def __getitem__(self, key):
         if key in self._overwritten:
@@ -155,10 +155,10 @@ class FaaSrPayload:
         Ensures that all of the S3 data stores are valid and reachable
         """
         # Iterate through all of the data stores
-        for server in self["DataStores"].keys():
+        for server in self['DataStores'].keys():
             # Get the endpoint and region
-            server_endpoint = self["DataStores"][server].get("Endpoint")
-            server_region = self["DataStores"][server]["Region"]
+            server_endpoint = self['DataStores'][server].get("Endpoint")
+            server_region = self['DataStores'][server]['Region']
             # Ensure that endpoint is a valid http address
             if server_endpoint and not server_endpoint.startswith("http"):
                 error_message = f"Invalid data store server endpoint {server}"
@@ -167,27 +167,27 @@ class FaaSrPayload:
 
             # If the region is empty, then use defualt 'us-east-1'
             if not server_region:
-                self["DataStores"][server]["Region"] = "us-east-1"
+                self['DataStores'][server]['Region'] = "us-east-1"
 
             if server_endpoint:
                 s3_client = boto3.client(
                     "s3",
-                    aws_access_key_id=self["DataStores"][server]["AccessKey"],
-                    aws_secret_access_key=self["DataStores"][server]["SecretKey"],
+                    aws_access_key_id=self['DataStores'][server]['AccessKey'],
+                    aws_secret_access_key=self['DataStores'][server]['SecretKey'],
                     region_name=server_region,
                     endpoint_url=server_endpoint,
                 )
             else:
                 s3_client = boto3.client(
                     "s3",
-                    aws_access_key_id=self["DataStores"][server]["AccessKey"],
-                    aws_secret_access_key=self["DataStores"][server]["SecretKey"],
+                    aws_access_key_id=self['DataStores'][server]['AccessKey'],
+                    aws_secret_access_key=self['DataStores'][server]['SecretKey'],
                     region_name=server_region,
                 )
             # Use boto3 head bucket to ensure that the
             # bucket exists and that we have acces to it
             try:
-                s3_client.head_bucket(Bucket=self["DataStores"][server]["Bucket"])
+                s3_client.head_bucket(Bucket=self['DataStores'][server]['Bucket'])
             except Exception as e:
                 err_message = f"S3 server {server} failed with message: {e}"
                 logger.exception(err_message, stack_info=True)
@@ -204,7 +204,7 @@ class FaaSrPayload:
             current_timestamp = datetime.now()
             default_format = "%Y-%m-%dT%H-%M-%S"
             format_timestamp = current_timestamp.strftime(default_format)
-            self["InvocationTimestamp"] = format_timestamp
+            self['InvocationTimestamp'] = format_timestamp
             logger.info(f"Generated InvocationTimestamp: {format_timestamp}")
         else:
             logger.info(
@@ -217,13 +217,13 @@ class FaaSrPayload:
         # Generate InvocationID based on configuration
         if self.get("InvocationIDFromDate"):
             # Use format to derive ID from timestamp
-            date_format = self["InvocationIDFromDate"]
-            timestamp_str = self["InvocationTimestamp"]
+            date_format = self['InvocationIDFromDate']
+            timestamp_str = self['InvocationTimestamp']
             current_timestamp = datetime.strptime(timestamp_str, "%Y-%m-%dT%H-%M-%S")
 
             try:
                 derived_id = current_timestamp.strftime(date_format)
-                self["InvocationID"] = derived_id
+                self['InvocationID'] = derived_id
                 logger.info(
                     f"Generated InvocationID from format '{date_format}': {derived_id}"
                 )
@@ -238,7 +238,7 @@ class FaaSrPayload:
         else:
 
             ID = uuid.uuid4()
-            self["InvocationID"] = str(ID)
+            self['InvocationID'] = str(ID)
             logger.info(f"Generated default UUID : {ID}")
         logger.info(f" InvocationID: {self['InvocationID']}")
 
@@ -254,16 +254,16 @@ class FaaSrPayload:
         if (
             "InvocationID" not in self.base_workflow
             and "InvocationID" not in self.overwritten
-        ) or ("InvocationID" not in self or not self["InvocationID"]):
+        ) or ("InvocationID" not in self or not self['InvocationID']):
             # ID = uuid.uuid4()
-            # self["InvocationID"] = str(ID)
+            # self['InvocationID'] = str(ID)
             self._generate_invocation_id()
 
-        faasr_msg = f"InvocationID for the workflow: {self["InvocationID"]}"
+        faasr_msg = f"InvocationID for the workflow: {self['InvocationID']}"
         logger.info(faasr_msg)
 
-        if self["FaaSrLog"] is None or self["FaaSrLog"] == "":
-            self["FaaSrLog"] = "FaaSrLog"
+        if self['FaaSrLog'] is None or self['FaaSrLog'] == "":
+            self['FaaSrLog'] = "FaaSrLog"
 
         # Get path to log
         log_folder = get_invocation_folder(self)
@@ -272,25 +272,25 @@ class FaaSrPayload:
             log_folder.mkdir(parents=True, exist_ok=True)
             file_count = sum(1 for p in log_folder.iterdir() if p.is_file())
             if file_count != 0:
-                err_msg = f"InvocationID already exists: {self["InvocationID"]}"
+                err_msg = f"InvocationID already exists: {self['InvocationID']}"
                 logger.error(err_msg)
                 sys.exit(1)
         else:
             target_s3 = get_logging_server(self)
-            s3_log_info = self["DataStores"][target_s3]
+            s3_log_info = self['DataStores'][target_s3]
             s3_client = get_default_log_boto3_client(self)
 
             # Check contents of log folder
             check_log_folder = s3_client.list_objects_v2(
-                Prefix=str(log_folder), Bucket=s3_log_info["Bucket"]
+                Prefix=str(log_folder), Bucket=s3_log_info['Bucket']
             )
 
             # If there already is a log, log error and abort; otherwise, create log
             if (
                 "Contents" in check_log_folder
-                and len(check_log_folder["Contents"]) != 0
+                and len(check_log_folder['Contents']) != 0
             ):
-                err_msg = f"InvocationID already exists: {self["InvocationID"]}"
+                err_msg = f"InvocationID already exists: {self['InvocationID']}"
                 logger.error(err_msg)
                 sys.exit(1)
 
@@ -316,7 +316,7 @@ class FaaSrPayload:
             self.check_candidate_set(id_folder)
         else:
             target_s3 = get_logging_server(self)
-            s3_log_info = self["DataStores"][target_s3]
+            s3_log_info = self['DataStores'][target_s3]
 
             # Get boto3 client for default data store
             s3_client = get_default_log_boto3_client(self)
@@ -326,14 +326,14 @@ class FaaSrPayload:
             # and see if all of the other actions have written that they are "done"
             # If all predecessor's are not finished, then this action aborts
             s3_list_object_response = s3_client.list_objects_v2(
-                Bucket=s3_log_info["Bucket"], Prefix=str(id_folder)
+                Bucket=s3_log_info['Bucket'], Prefix=str(id_folder)
             )
             s3_contents = s3_list_object_response.get("Contents", [])
 
             s3_object_keys = []
             for object in s3_contents:
                 if "Key" in object:
-                    s3_object_keys.append(object["Key"])
+                    s3_object_keys.append(object['Key'])
 
             for func in pre:
                 # check if all of the predecessor func.done objects exist
@@ -388,11 +388,11 @@ class FaaSrPayload:
 
             # If exists in S3, download
             s3_response = s3_client.list_objects_v2(
-                Bucket=s3_log_info["Bucket"], Prefix=str(candidate_path)
+                Bucket=s3_log_info['Bucket'], Prefix=str(candidate_path)
             )
-            if "Contents" in s3_response and s3_response["Contents"]:
+            if "Contents" in s3_response and s3_response['Contents']:
                 s3_client.download_file(
-                    Bucket=s3_log_info["Bucket"],
+                    Bucket=s3_log_info['Bucket'],
                     Key=str(candidate_path),
                     Filename=str(candidate_download_path),
                 )
@@ -402,12 +402,12 @@ class FaaSrPayload:
 
             with candidate_download_path.open("rb") as cf:
                 s3_client.put_object(
-                    Bucket=s3_log_info["Bucket"], Key=str(candidate_path), Body=cf
+                    Bucket=s3_log_info['Bucket'], Key=str(candidate_path), Body=cf
                 )
 
             # Re-download to verify
             s3_client.download_file(
-                Bucket=s3_log_info["Bucket"],
+                Bucket=s3_log_info['Bucket'],
                 Key=str(candidate_path),
                 Filename=str(candidate_download_path),
             )

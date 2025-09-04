@@ -42,8 +42,8 @@ class Executor:
         Arguments:
             action_name: str -- name of the action to run
         """
-        func_name = self.faasr["ActionList"][action_name]["FunctionName"]
-        func_type = self.faasr["ActionList"][action_name]["Type"]
+        func_name = self.faasr['ActionList"][action_name]['FunctionName"]
+        func_type = self.faasr['ActionList"][action_name]['Type"]
         user_args = self._get_user_function_args(action_name)
 
         if not global_config.SKIP_USER_FUNCTION:
@@ -94,7 +94,7 @@ class Executor:
                             "/tmp/r_user_func_entry.R",
                             func_name,
                             json.dumps(user_args),
-                            self.faasr["InvocationID"],
+                            self.faasr['InvocationID"],
                         ],
                         cwd="/tmp",
                     )
@@ -129,7 +129,7 @@ class Executor:
 
         if "FunctionRank" in self.faasr:
             file_name = (
-                f"function_completions/{action_name}.{self.faasr["FunctionRank"]}.done"
+                f"function_completions/{action_name}.{self.faasr['FunctionRank"]}.done"
             )
         else:
             file_name = f"function_completions/{action_name}.done"
@@ -158,7 +158,7 @@ class Executor:
         """
         # install dependencies for function
         logger.debug("Starting dependency install")
-        action = self.faasr["ActionList"][action_name]
+        action = self.faasr['ActionList"][action_name]
         faasr_func_dependancy_install(self.faasr, action)
         logger.debug("Finished installing dependencies")
 
@@ -210,7 +210,7 @@ class Executor:
         Returns:
             dict -- user function arguments
         """
-        args = self.faasr["ActionList"][action_name]["Arguments"]
+        args = self.faasr['ActionList"][action_name]['Arguments"]
         if args is None:
             return {}
         else:
@@ -236,10 +236,10 @@ class Executor:
 
         if return_val.get("Error"):
             if return_val.get("Message"):
-                err_msg = f"{return_val["Message"]}"
+                err_msg = f"{return_val['Message"]}"
             else:
                 err_msg = "Unkown error while getting user function return"
             logger.error(err_msg, stack_info=True)
             raise RuntimeError(err_msg)
 
-        return return_val["FunctionResult"]
+        return return_val['FunctionResult"]

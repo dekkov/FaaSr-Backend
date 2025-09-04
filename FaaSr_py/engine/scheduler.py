@@ -33,8 +33,8 @@ class Scheduler:
             return_val: any -- value returned by the user function, used for conditionals
         """
         # Get a list of the next functions to invoke
-        curr_func = self.faasr['FunctionInvoke"]
-        invoke_next = self.faasr['ActionList"][curr_func]['InvokeNext"]
+        curr_func = self.faasr['FunctionInvoke']
+        invoke_next = self.faasr['ActionList'][curr_func]['InvokeNext']
         if not isinstance(invoke_next, list):
             invoke_next = [invoke_next]
 
@@ -78,26 +78,26 @@ class Scheduler:
         else:
             rank_num = 1
 
-        self.faasr['FunctionInvoke"] = function
-        next_server = self.faasr['ActionList"][function]['FaaSServer"]
+        self.faasr['FunctionInvoke'] = function
+        next_server = self.faasr['ActionList'][function]['FaaSServer']
 
         if global_config.SKIP_REAL_TRIGGERS:
             logger.info("SKIPPING REAL TRIGGERS")
 
         for rank in range(1, rank_num + 1):
             if rank_num > 1:
-                self.faasr['FunctionRank"] = rank  # add functionrank to overwritten
+                self.faasr['FunctionRank'] = rank  # add functionrank to overwritten
             else:
                 if "FunctionRank" in self.faasr:
-                    del self.faasr['FunctionRank"]
+                    del self.faasr['FunctionRank']
 
-            if next_server not in self.faasr['ComputeServers"]:
+            if next_server not in self.faasr['ComputeServers']:
                 err_msg = f"invalid server name: {next_server}"
                 logger.error(err_msg)
                 sys.exit(1)
 
-            next_compute_server = self.faasr['ComputeServers"][next_server]
-            next_server_type = next_compute_server['FaaSType"]
+            next_compute_server = self.faasr['ComputeServers'][next_server]
+            next_server_type = next_compute_server['FaaSType']
 
             if not global_config.SKIP_REAL_TRIGGERS:
                 match (next_server_type):
@@ -139,15 +139,15 @@ class Scheduler:
             logger.debug(f"Prepending workflow name. Full function: {function}")
 
         # Get env values for GH actions
-        pat = next_compute_server['Token"]
-        username = next_compute_server['UserName"]
-        reponame = next_compute_server['ActionRepoName"]
+        pat = next_compute_server['Token']
+        username = next_compute_server['UserName']
+        reponame = next_compute_server['ActionRepoName']
         repo = f"{username}/{reponame}"
         if not function.endswith(".ml") and not function.endswith(".yaml"):
             workflow_file = f"{function}.yml"
         else:
             workflow_file = function
-        git_ref = next_compute_server['Branch"]
+        git_ref = next_compute_server['Branch']
 
         # Create payload input
         overwritten_fields = self.faasr.overwritten
@@ -157,12 +157,12 @@ class Scheduler:
         # that contain secrets via overwritten
         if next_compute_server.get("UseSecretStore"):
             if "ComputeServers" in overwritten_fields:
-                del overwritten_fields['ComputeServers"]
+                del overwritten_fields['ComputeServers']
             if "DataStores" in overwritten_fields:
-                del overwritten_fields['DataStores"]
+                del overwritten_fields['DataStores']
         else:
-            overwritten_fields['ComputeServers"] = self.faasr['ComputeServers"]
-            overwritten_fields['DataStores"] = self.faasr['DataStores"]
+            overwritten_fields['ComputeServers'] = self.faasr['ComputeServers']
+            overwritten_fields['DataStores'] = self.faasr['DataStores']
 
         json_overwritten = json.dumps(overwritten_fields)
 
@@ -250,9 +250,9 @@ class Scheduler:
         # Create client for invoking lambda function
         lambda_client = boto3.client(
             "lambda",
-            aws_access_key_id=next_compute_server['AccessKey"],
-            aws_secret_access_key=next_compute_server['SecretKey"],
-            region_name=next_compute_server['Region"],
+            aws_access_key_id=next_compute_server['AccessKey'],
+            aws_secret_access_key=next_compute_server['SecretKey'],
+            region_name=next_compute_server['Region'],
         )
 
         # Invoke lambda function
@@ -262,12 +262,12 @@ class Scheduler:
         # Don't send secrets to next action if UseSecretStore is set
         if next_compute_server.get("UseSecretStore"):
             if "ComputeServers" in overwritten_fields:
-                del overwritten_fields['ComputeServers"]
+                del overwritten_fields['ComputeServers']
             if "DataStores" in overwritten_fields:
-                del overwritten_fields['DataStores"]
+                del overwritten_fields['DataStores']
         else:
-            overwritten_fields['ComputeServers"] = self.faasr['ComputeServers"]
-            overwritten_fields['DataStores"] = self.faasr['DataStores"]
+            overwritten_fields['ComputeServers'] = self.faasr['ComputeServers']
+            overwritten_fields['DataStores'] = self.faasr['DataStores']
 
         try:
             payload = {
@@ -284,7 +284,7 @@ class Scheduler:
             logger.exception(e, stack_info=True)
             sys.exit(1)
 
-        if "StatusCode" in response and str(response['StatusCode"])[0] == "2":
+        if "StatusCode" in response and str(response['StatusCode'])[0] == "2":
             succ_msg = f"Lambda: Successfully invoked: {self.faasr['FunctionInvoke']}"
             logger.info(succ_msg)
         else:
@@ -312,21 +312,21 @@ class Scheduler:
             logger.debug(f"Prepending workflow name. Full function: {function}")
 
         # Get ow credentials
-        endpoint = next_compute_server['Endpoint"]
-        api_key = next_compute_server['API.key"]
+        endpoint = next_compute_server['Endpoint']
+        api_key = next_compute_server['API.key']
         api_key = api_key.split(":")
 
         # Check if we should use ssl
         if "AllowSelfSignedCertificate" not in next_compute_server:
             ssl = True
         else:
-            if next_compute_server['AllowSelfSignedCertificate"]:
+            if next_compute_server['AllowSelfSignedCertificate']:
                 ssl = False
             else:
                 ssl = True
 
         # Get the namespace of the OW server
-        namespace = next_compute_server['Namespace"]
+        namespace = next_compute_server['Namespace']
         actionname = function
 
         # Append https:// front to endpoint if needed
@@ -344,8 +344,8 @@ class Scheduler:
 
         overwritten_fields = self.faasr.overwritten
 
-        overwritten_fields['ComputeServers"] = self.faasr['ComputeServers"]
-        overwritten_fields['DataStores"] = self.faasr['DataStores"]
+        overwritten_fields['ComputeServers'] = self.faasr['ComputeServers']
+        overwritten_fields['DataStores'] = self.faasr['DataStores']
 
         payload_dict = {
             "OVERWRITTEN": overwritten_fields,
@@ -406,7 +406,7 @@ class Scheduler:
         # Get server configuration
         server_info = next_compute_server
         api_version = server_info.get("APIVersion", "v0.0.37")
-        endpoint = server_info['Endpoint"]
+        endpoint = server_info['Endpoint']
 
         # Ensure endpoint has protocol
         if not endpoint.startswith("http"):
@@ -421,7 +421,7 @@ class Scheduler:
 
         # Validate JWT token
         token_validation = validate_jwt_token(server_info.get("Token"))
-        if not token_validation['valid"]:
+        if not token_validation['valid']:
             err_msg = (
                 f"SLURM: Token validation failed for {self.faasr['FunctionInvoke']} - "
                 f"{token_validation['error']}"
@@ -443,17 +443,17 @@ class Scheduler:
             # Next action will fetch secrets from its own secret store
             # Remove secrets from overwritten fields
             if "ComputeServers" in overwritten_fields:
-                del overwritten_fields['ComputeServers"]
+                del overwritten_fields['ComputeServers']
             if "DataStores" in overwritten_fields:
-                del overwritten_fields['DataStores"]
+                del overwritten_fields['DataStores']
             logger.info(
                 "Next SLURM action will use secret store. Secrets not included in payload"
             )
         else:
             # Next action expects secrets in payload
             # Include full ComputeServers and DataStores with secrets
-            overwritten_fields['ComputeServers"] = self.faasr['ComputeServers"]
-            overwritten_fields['DataStores"] = self.faasr['DataStores"]
+            overwritten_fields['ComputeServers'] = self.faasr['ComputeServers']
+            overwritten_fields['DataStores'] = self.faasr['DataStores']
             logger.info(
                 "Next SLURM action expects secrets in payload - including credentials"
             )
@@ -471,17 +471,17 @@ class Scheduler:
         resource_config = get_resource_requirements(self.faasr, function, server_info)
 
         # Add secrets only if UseSecretStore is False for current server
-        current_func = self.faasr['FunctionInvoke"]
-        current_server = self.faasr['ActionList"][current_func]['FaaSServer"]
-        current_compute_server = self.faasr['ComputeServers"][current_server]
+        current_func = self.faasr['FunctionInvoke']
+        current_server = self.faasr['ActionList'][current_func]['FaaSServer']
+        current_compute_server = self.faasr['ComputeServers'][current_server]
 
         if not current_compute_server.get("UseSecretStore"):
             # Include secrets for the next action (it doesn't have access to secret store)
             secrets_payload = {
-                "ComputeServers": self.faasr['ComputeServers"],
-                "DataStores": self.faasr['DataStores"],
+                "ComputeServers": self.faasr['ComputeServers'],
+                "DataStores": self.faasr['DataStores'],
             }
-            environment_vars['SECRET_PAYLOAD"] = json.dumps(
+            environment_vars['SECRET_PAYLOAD'] = json.dumps(
                 secrets_payload, separators=(",", ":")
             )
 
@@ -494,13 +494,13 @@ class Scheduler:
         job_payload = {
             "job": {
                 "name": f"faasr-{function}",
-                "partition": resource_config['partition"],
-                "nodes": str(resource_config['nodes"]),
-                "tasks": str(resource_config['tasks"]),
-                "cpus_per_task": str(resource_config['cpus_per_task"]),
-                "memory_per_cpu": str(resource_config['memory_mb"]),
-                "time_limit": str(resource_config['time_limit"]),
-                "current_working_directory": resource_config['working_dir"],
+                "partition": resource_config['partition'],
+                "nodes": str(resource_config['nodes']),
+                "tasks": str(resource_config['tasks']),
+                "cpus_per_task": str(resource_config['cpus_per_task']),
+                "memory_per_cpu": str(resource_config['memory_mb']),
+                "time_limit": str(resource_config['time_limit']),
+                "current_working_directory": resource_config['working_dir'],
                 "environment": environment_vars,
             },
             "script": job_script,
@@ -583,8 +583,8 @@ class Scheduler:
         endpoint = next_compute_server.get(
             "Endpoint", "run.googleapis.com/v2/projects/"
         )
-        namespace = next_compute_server['Namespace"]
-        region = next_compute_server['Region"]
+        namespace = next_compute_server['Namespace']
+        region = next_compute_server['Region']
 
         # Ensure endpoint has https://
         if not endpoint.startswith("https://"):
@@ -595,40 +595,40 @@ class Scheduler:
 
         # Build overwritten fields - matching GitHub Actions pattern
         overwritten = {}
-        overwritten['FunctionInvoke"] = function
+        overwritten['FunctionInvoke'] = function
 
         # Add InvocationID if present
         if self.faasr.get("InvocationID"):
-            overwritten['InvocationID"] = self.faasr['InvocationID"]
+            overwritten['InvocationID'] = self.faasr['InvocationID']
 
         # Add InvocationTimestamp if present
         if self.faasr.get("InvocationTimestamp"):
-            overwritten['InvocationTimestamp"] = self.faasr['InvocationTimestamp"]
+            overwritten['InvocationTimestamp'] = self.faasr['InvocationTimestamp']
 
         # Add FunctionResult if present
         if self.faasr.get("FunctionResult"):
-            overwritten['FunctionResult"] = self.faasr['FunctionResult"]
+            overwritten['FunctionResult'] = self.faasr['FunctionResult']
 
         # Handle FunctionRank if it exists (for ranked invocations)
         if self.faasr.get("FunctionRank"):
-            overwritten['FunctionRank"] = self.faasr['FunctionRank"]
+            overwritten['FunctionRank'] = self.faasr['FunctionRank']
 
         # Handle UseSecretStore=False case
         use_secret_store = next_compute_server.get("UseSecretStore", True)
         if not use_secret_store:
             # Include credentials in overwritten
             if "ComputeServers" not in overwritten:
-                overwritten['ComputeServers"] = {}
+                overwritten['ComputeServers'] = {}
 
             # Get the server name by finding which server matches this config
             server_name = None
-            for name, config in self.faasr['ComputeServers"].items():
+            for name, config in self.faasr['ComputeServers'].items():
                 if config == next_compute_server:
                     server_name = name
                     break
 
             if server_name:
-                overwritten['ComputeServers"][server_name] = {
+                overwritten['ComputeServers'][server_name] = {
                     "ClientEmail": next_compute_server.get("ClientEmail"),
                     "SecretKey": next_compute_server.get("SecretKey"),
                     "TokenUri": next_compute_server.get("TokenUri"),
@@ -638,7 +638,7 @@ class Scheduler:
         try:
             # Find server name for auth
             server_name = None
-            for name, config in self.faasr['ComputeServers"].items():
+            for name, config in self.faasr['ComputeServers'].items():
                 if config == next_compute_server:
                     server_name = name
                     break
@@ -663,7 +663,7 @@ class Scheduler:
 
         # Add TOKEN env var for GitHub authentication
         if "TOKEN" in os.environ:
-            env_vars.append({"name": "TOKEN", "value": os.environ['TOKEN"]})
+            env_vars.append({"name": "TOKEN", "value": os.environ['TOKEN']})
 
         # Add secrets if available
         if use_secret_store:
@@ -671,7 +671,7 @@ class Scheduler:
 
             if "SECRET_PAYLOAD" in os.environ:
                 env_vars.append(
-                    {"name": "SECRET_PAYLOAD", "value": os.environ['SECRET_PAYLOAD"]}
+                    {"name": "SECRET_PAYLOAD", "value": os.environ['SECRET_PAYLOAD']}
                 )
 
         # Build request body for Cloud Run
@@ -687,7 +687,7 @@ class Scheduler:
         # SSL verification (same as in the original code)
         ssl_verify = True
         if "SSL" in next_compute_server:
-            ssl_str = str(next_compute_server['SSL"]).lower()
+            ssl_str = str(next_compute_server['SSL']).lower()
             ssl_verify = ssl_str != "false"
 
         # Send request

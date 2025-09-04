@@ -24,13 +24,13 @@ def faasr_rsm(faasr_payload):
     # set env for flag and lock
     flag_content = random.randint(1, 2**31 - 1)
     invocation_folder = get_invocation_folder(faasr_payload)
-    flag_path = invocation_folder / Path(faasr_payload["FunctionInvoke"]) / "flag"
+    flag_path = invocation_folder / Path(faasr_payload['FunctionInvoke']) / "flag"
     flag_name = flag_path / str(flag_content)
-    lock_name = invocation_folder / Path(faasr_payload["FunctionInvoke"]) / "lock"
+    lock_name = invocation_folder / Path(faasr_payload['FunctionInvoke']) / "lock"
 
     # set s3 client
     logging_datastore = get_logging_server(faasr_payload)
-    target_s3 = faasr_payload["DataStores"][logging_datastore]
+    target_s3 = faasr_payload['DataStores'][logging_datastore]
     s3_client = get_default_log_boto3_client(faasr_payload)
 
     cnt = 0
@@ -42,7 +42,7 @@ def faasr_rsm(faasr_payload):
         # log/functionname/flag/{random_intger}
         # into the S3 bucket
         try:
-            s3_client.put_object(Key=str(flag_name), Bucket=target_s3["Bucket"])
+            s3_client.put_object(Key=str(flag_name), Bucket=target_s3['Bucket'])
         except Exception as e:
             err_msg = f"failed to upload flag to S3 -- MESSAGE: {e}"
             logger.exception(err_msg, stack_info=True)
@@ -50,7 +50,7 @@ def faasr_rsm(faasr_payload):
 
         # If someone has a flag, then delete flag and try again
         if anyone_else_interested(s3_client, target_s3, flag_path, flag_name):
-            s3_client.delete_object(Bucket=target_s3["Bucket"], Key=str(flag_name))
+            s3_client.delete_object(Bucket=target_s3['Bucket'], Key=str(flag_name))
             if cnt > max_cnt:
                 time.sleep(2**max_cnt)
                 cnt += 1
@@ -65,22 +65,22 @@ def faasr_rsm(faasr_payload):
         else:
             # Check if a lock is present in s3 already
             check_lock = s3_client.list_objects_v2(
-                Bucket=target_s3["Bucket"], Prefix=str(lock_name)
+                Bucket=target_s3['Bucket'], Prefix=str(lock_name)
             )
 
             # if lock is not present already, place a lock and return True
             # otherwise abort and return False to indicate that
             # the lock was unable to be acquired
-            if "Contents" not in check_lock or len(check_lock["Contents"]) == 0:
+            if "Contents" not in check_lock or len(check_lock['Contents']) == 0:
                 s3_client.put_object(
-                    Bucket=target_s3["Bucket"],
+                    Bucket=target_s3['Bucket'],
                     Key=str(lock_name),
                     Body=str(flag_content),
                 )
-                s3_client.delete_object(Bucket=target_s3["Bucket"], Key=str(flag_name))
+                s3_client.delete_object(Bucket=target_s3['Bucket'], Key=str(flag_name))
                 return True
             else:
-                s3_client.delete_object(Bucket=target_s3["Bucket"], Key=str(flag_name))
+                s3_client.delete_object(Bucket=target_s3['Bucket'], Key=str(flag_name))
                 logger.info("FAILED TO ACQUIRE S3 LOCK")
                 return False
 
@@ -130,15 +130,15 @@ def faasr_release(faasr_payload):
     """
     # The lock file is in the form {FaaSrLog}/{InvocationID}/{FunctionInvoke}/lock
     invocation_folder = get_invocation_folder(faasr_payload)
-    lock_name = invocation_folder / Path(faasr_payload["FunctionInvoke"]) / "lock"
+    lock_name = invocation_folder / Path(faasr_payload['FunctionInvoke']) / "lock"
 
     # Get the faasr logging server from payload
     logging_datastore = get_logging_server(faasr_payload)
-    target_s3 = faasr_payload["DataStores"][logging_datastore]
+    target_s3 = faasr_payload['DataStores'][logging_datastore]
     s3_client = get_default_log_boto3_client(faasr_payload)
 
     # Delete the lock from S3
-    s3_client.delete_object(Bucket=target_s3["Bucket"], Key=str(lock_name))
+    s3_client.delete_object(Bucket=target_s3['Bucket'], Key=str(lock_name))
 
 
 def anyone_else_interested(boto3_client, target_s3, flag_path, flag_name):
@@ -157,10 +157,10 @@ def anyone_else_interested(boto3_client, target_s3, flag_path, flag_name):
 
     # Get a list of flag names
     check_pool = boto3_client.list_objects_v2(
-        Bucket=target_s3["Bucket"], Prefix=str(flag_path)
+        Bucket=target_s3['Bucket'], Prefix=str(flag_path)
     )
 
-    pool = [x["Key"] for x in check_pool["Contents"]]
+    pool = [x['Key'] for x in check_pool['Contents']]
     # If our flag is in S3 and is the only one, return false
     if str(flag_name) in pool and len(pool) == 1:
         return False
